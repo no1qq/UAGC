@@ -66,6 +66,41 @@ speed attribute and vehicles all pass, while a sustained 0.75 blocks per tick is
 | `required-streak` | 2 | consecutive excesses before flagging |
 | `severity-scale` | 0.35 | proportional excess mapping to full severity |
 
+### sprint_direction
+
+Catches omni directional sprint, the cheat that lets a player sprint sideways and backwards.
+
+Server side, an omni sprinter is not moving too fast. Vanilla applies the same `1.3` sprint
+multiplier to sideways and backward movement as it does to forward, so `horizontal_speed` sees a
+perfectly legal speed. The rule a vanilla client actually enforces is that sprint only starts and
+continues while forward input is held, and that rule lives entirely on the client. The only thing
+left on the server is the angle between where the player is travelling and where they are looking.
+
+So this check takes the horizontal movement vector, takes the horizontal facing vector from the yaw,
+and measures the angle between them. Vanilla forward sprinting sits near zero. Sprinting forward
+while strafing sits at roughly 45 degrees. Anything past 60 degrees sustained cannot come from a
+vanilla client holding forward.
+
+It only measures a player who is sprinting, on the ground, on a normal friction surface, not
+colliding horizontally, moving a real distance, not recently given velocity by the server, and not
+turning sharply this tick. Every one of those bail outs exists because it produces sideways travel
+for a legitimate player: ice carries momentum through a turn, knockback throws you sideways with
+sprint still latched on, a wall slides you along it, and a fast mouse turn makes travel lag facing
+for a tick or two. On top of that it needs six consecutive ticks before it flags.
+
+The test suite verifies that forward sprinting, diagonal sprinting, walking sideways, ice, knockback,
+a stationary player and a brief sideways burst all pass, while sustained sideways and backward
+sprinting are detected.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `maximum-offset-degrees` | 60.0 | how far travel may diverge from facing while sprinting |
+| `maximum-turn-degrees` | 40.0 | a sharper turn than this skips the tick |
+| `minimum-distance` | 0.08 | movement below this has no reliable direction |
+| `velocity-grace-ticks` | 20.0 | ticks after server applied velocity that are ignored |
+| `required-streak` | 6 | consecutive offending ticks before flagging |
+| `severity-scale` | 0.6 | proportional excess mapping to full severity |
+
 ### ground_spoof
 
 Many cheats claim `onGround` while airborne to defeat fall damage and flight limits. This check flags a

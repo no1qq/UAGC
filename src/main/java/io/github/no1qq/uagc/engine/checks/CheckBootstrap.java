@@ -8,6 +8,7 @@ import io.github.no1qq.uagc.engine.checks.interaction.FastBreakCheck;
 import io.github.no1qq.uagc.engine.checks.interaction.InvalidPlacementCheck;
 import io.github.no1qq.uagc.engine.checks.movement.GroundSpoofCheck;
 import io.github.no1qq.uagc.engine.checks.movement.HorizontalSpeedCheck;
+import io.github.no1qq.uagc.engine.checks.movement.SprintDirectionCheck;
 import io.github.no1qq.uagc.engine.checks.movement.NoFallCheck;
 import io.github.no1qq.uagc.engine.checks.movement.TimerCheck;
 import io.github.no1qq.uagc.engine.checks.movement.VerticalMotionCheck;
@@ -30,6 +31,7 @@ public final class CheckBootstrap {
         registry.register(new InvalidPositionCheck(), config);
         registry.register(new VerticalMotionCheck(), config);
         registry.register(new HorizontalSpeedCheck(), config);
+        registry.register(new SprintDirectionCheck(), config);
         registry.register(new GroundSpoofCheck(), config);
         registry.register(new NoFallCheck(), config);
         registry.register(new TimerCheck(), config);

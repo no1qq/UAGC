@@ -112,6 +112,21 @@ checks:
         required-streak: 2
         severity-scale: 0.35
 
+    sprint_direction:
+      enabled: true
+      violation-increment: 1.0
+      decay-per-tick: 0.02
+      max-violation-level: 200.0
+      minimum-confidence: 0.4
+      alert-threshold: 4.0
+      options:
+        maximum-offset-degrees: 60.0
+        maximum-turn-degrees: 40.0
+        minimum-distance: 0.08
+        velocity-grace-ticks: 20.0
+        required-streak: 6
+        severity-scale: 0.6
+
     ground_spoof:
       enabled: true
       violation-increment: 1.0

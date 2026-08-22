@@ -48,7 +48,7 @@ To run only the test suite:
 | Punishment engine, automatic and manual | implemented |
 | Freeze system with persistence | implemented |
 | Trusted plugin integration API | implemented |
-| Movement checks | vertical motion, horizontal speed, ground spoof, no fall, timer |
+| Movement checks | vertical motion, horizontal speed, sprint direction, ground spoof, no fall, timer |
 | Combat checks | reach, attack rhythm |
 | Interaction checks | fast break, block reach, invalid placement |
 | Protocol checks | invalid position |
