@@ -10,8 +10,11 @@ It is built around one principle:
 
 ## Requirements
 
-- PaperMC 1.21.11
+- PaperMC 1.21 through 1.21.11, every patch in between included
 - Java 21
+
+One jar covers the whole range. See [compatibility](docs/compatibility.md) for how that is guaranteed
+and what is verified on every build.
 
 ## Building
 
@@ -51,6 +54,7 @@ Every check listed above performs real analysis. There are no placeholder checks
 ## Documentation
 
 - [Architecture](docs/architecture.md) - how the engine and the Paper layer are separated, and why
+- [Compatibility](docs/compatibility.md) - the supported Paper versions and how one jar covers them all
 - [Checks](docs/checks.md) - what each check models and how it avoids false positives
 - [Configuration](docs/configuration.md) - every option in `config.yml`
 - [Commands and permissions](docs/commands-and-permissions.md) - the command tree, permission hierarchy, bypass, admin mode and freeze

@@ -3,6 +3,7 @@ package io.github.no1qq.uagc.bukkit;
 import io.github.no1qq.uagc.api.UagcApi;
 import io.github.no1qq.uagc.bukkit.api.UagcApiImpl;
 import io.github.no1qq.uagc.bukkit.command.UagcCommandTree;
+import io.github.no1qq.uagc.bukkit.compat.Attributes;
 import io.github.no1qq.uagc.bukkit.config.ConfigLoader;
 import io.github.no1qq.uagc.bukkit.listener.CombatListener;
 import io.github.no1qq.uagc.bukkit.listener.ConnectionListener;
@@ -19,6 +20,7 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.util.List;
 import java.util.UUID;
 
 public final class UagcPlugin extends JavaPlugin {
@@ -54,6 +56,7 @@ public final class UagcPlugin extends JavaPlugin {
         }
 
         tickTask = Bukkit.getScheduler().runTaskTimer(this, this::tick, 1L, 1L);
+        warnAboutMissingAttributes();
         getLogger().info("UAGC enabled with " + runtime.registry().size() + " checks");
     }
 
@@ -81,6 +84,15 @@ public final class UagcPlugin extends JavaPlugin {
         } catch (RuntimeException exception) {
             getLogger().warning("tick task failed: " + exception.getMessage());
         }
+    }
+
+    private void warnAboutMissingAttributes() {
+        List<String> missing = Attributes.unresolved();
+        if (missing.isEmpty()) {
+            return;
+        }
+        getLogger().warning("this server does not expose " + String.join(", ", missing)
+                + ", UAGC will fall back to vanilla values for them and may be less accurate");
     }
 
     private void registerListeners() {

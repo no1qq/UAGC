@@ -1,5 +1,6 @@
 package io.github.no1qq.uagc.bukkit.sample;
 
+import io.github.no1qq.uagc.bukkit.compat.Attributes;
 import io.github.no1qq.uagc.engine.movement.ActivitySample;
 import io.github.no1qq.uagc.engine.movement.AttributeSample;
 import io.github.no1qq.uagc.engine.movement.EffectSample;
@@ -9,8 +10,6 @@ import io.github.no1qq.uagc.engine.movement.Rotation;
 import io.github.no1qq.uagc.engine.movement.SurfaceSample;
 import io.github.no1qq.uagc.engine.movement.Vec3;
 import org.bukkit.Location;
-import org.bukkit.attribute.Attribute;
-import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -51,18 +50,20 @@ public final class PlayerSampler {
         return new AttributeSample(
                 player.getWalkSpeed(),
                 player.getFlySpeed(),
-                attribute(player, Attribute.MOVEMENT_SPEED, AttributeSample.VANILLA_MOVEMENT_SPEED),
-                attribute(player, Attribute.JUMP_STRENGTH, AttributeSample.VANILLA_JUMP_STRENGTH),
-                attribute(player, Attribute.GRAVITY, AttributeSample.VANILLA_GRAVITY),
-                attribute(player, Attribute.STEP_HEIGHT, AttributeSample.VANILLA_STEP_HEIGHT),
-                attribute(player, Attribute.SCALE, 1.0D),
-                attribute(player, Attribute.SAFE_FALL_DISTANCE, 3.0D),
-                attribute(player, Attribute.FALL_DAMAGE_MULTIPLIER, 1.0D),
-                attribute(player, Attribute.ENTITY_INTERACTION_RANGE, AttributeSample.VANILLA_ENTITY_INTERACTION_RANGE),
-                attribute(player, Attribute.BLOCK_INTERACTION_RANGE, AttributeSample.VANILLA_BLOCK_INTERACTION_RANGE),
-                attribute(player, Attribute.SNEAKING_SPEED, 0.3D),
-                attribute(player, Attribute.MOVEMENT_EFFICIENCY, 0.0D),
-                attribute(player, Attribute.WATER_MOVEMENT_EFFICIENCY, 0.0D));
+                Attributes.value(player, Attributes.MOVEMENT_SPEED, AttributeSample.VANILLA_MOVEMENT_SPEED),
+                Attributes.value(player, Attributes.JUMP_STRENGTH, AttributeSample.VANILLA_JUMP_STRENGTH),
+                Attributes.value(player, Attributes.GRAVITY, AttributeSample.VANILLA_GRAVITY),
+                Attributes.value(player, Attributes.STEP_HEIGHT, AttributeSample.VANILLA_STEP_HEIGHT),
+                Attributes.value(player, Attributes.SCALE, 1.0D),
+                Attributes.value(player, Attributes.SAFE_FALL_DISTANCE, 3.0D),
+                Attributes.value(player, Attributes.FALL_DAMAGE_MULTIPLIER, 1.0D),
+                Attributes.value(player, Attributes.ENTITY_INTERACTION_RANGE,
+                        AttributeSample.VANILLA_ENTITY_INTERACTION_RANGE),
+                Attributes.value(player, Attributes.BLOCK_INTERACTION_RANGE,
+                        AttributeSample.VANILLA_BLOCK_INTERACTION_RANGE),
+                Attributes.value(player, Attributes.SNEAKING_SPEED, 0.3D),
+                Attributes.value(player, Attributes.MOVEMENT_EFFICIENCY, 0.0D),
+                Attributes.value(player, Attributes.WATER_MOVEMENT_EFFICIENCY, 0.0D));
     }
 
     public static ActivitySample sampleActivity(Player player) {
@@ -105,14 +106,5 @@ public final class PlayerSampler {
     private static int amplifier(Player player, PotionEffectType type) {
         PotionEffect effect = player.getPotionEffect(type);
         return effect == null ? EffectSample.NONE : effect.getAmplifier();
-    }
-
-    private static double attribute(Player player, Attribute attribute, double fallback) {
-        AttributeInstance instance = player.getAttribute(attribute);
-        if (instance == null) {
-            return fallback;
-        }
-        double value = instance.getValue();
-        return Double.isFinite(value) ? value : fallback;
     }
 }

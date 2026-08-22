@@ -15,6 +15,11 @@ JDK launched Gradle.
 Only two dependencies exist, both `compileOnly`: the Paper API and Adventure MiniMessage, which Paper
 provides at runtime. Nothing is shaded and there is no relocation step.
 
+`build` also runs `compileAgainstNewestApi`, which compiles the same sources against the newest
+supported Paper API. The jar itself is compiled against the oldest one. Both ends of the supported
+version range therefore break the build rather than a player's server. See
+[compatibility](compatibility.md).
+
 ## Adding a check
 
 A check needs one new file and one line of registration. Nothing else has to change: alerts,
