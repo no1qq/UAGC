@@ -1,0 +1,211 @@
+general:
+  enabled: true
+  bypass-refresh-interval-ticks: 60
+  lag-spike-threshold-millis: 200
+  exempt-on-lag-spike: true
+  max-check-failures-before-disable: 12
+  log-punishments: true
+  log-violations-to-console: false
+
+player-data:
+  movement-history-size: 40
+  latency-sample-size: 20
+  click-sample-size: 40
+  evidence-entry-capacity: 64
+  evidence-violation-capacity: 48
+  alerts-enabled-by-default: true
+  default-alert-confidence: 0.35
+  default-alert-violation-level: 1.0
+
+confidence:
+  ping-comfortable-millis: 120
+  ping-severe-millis: 450
+  ping-reliability-floor: 0.45
+  tick-reliability-floor: 0.30
+  transition-grace-ticks: 20
+  transition-reliability-floor: 0.25
+  jitter-penalty-threshold: 90.0
+  jitter-reliability-floor: 0.70
+
+alerts:
+  enabled: true
+  enabled-by-default-for-staff: true
+  format: "<gray>[<gold>UAGC</gold>]</gray> <white><player></white> <gray>failed</gray> <aqua><check></aqua> <gray>(vl <yellow><vl></yellow>, <yellow><confidence></yellow>, <yellow><ping>ms</yellow>)</gray>"
+  hover-format: "<gray><summary></gray>"
+  click-command: "/uagc profile <player>"
+  default-minimum-confidence: 0.35
+  default-minimum-violation-level: 1.0
+  cooldown-ticks: 20
+  send-to-console: true
+
+freeze:
+  block-movement: true
+  block-interaction: true
+  block-commands: true
+  block-damage: false
+  persist-across-reconnect: true
+  reminder-interval-ticks: 60
+  frozen-title: "<red>You are frozen"
+  frozen-subtitle: "<gray>Do not log out"
+  frozen-message: "<red>You have been frozen by staff. Logging out will be treated as evading the investigation."
+  unfrozen-message: "<green>You are no longer frozen."
+  disconnect-action: none
+  allowed-commands:
+    - msg
+    - r
+    - reply
+    - tell
+
+punishments:
+  enabled: true
+  dry-run: false
+  ban-source: UAGC
+  default-kick-message: "<red>UAGC</red> <gray>|</gray> <white>Removed from the server</white>"
+  default-ban-message: "<red>UAGC</red> <gray>|</gray> <white>Banned for cheating</white>"
+  default-temp-ban-message: "<red>UAGC</red> <gray>|</gray> <white>Temporarily banned for cheating</white>"
+  rules: []
+
+debug:
+  enabled: false
+  log-internal-check-failures: true
+  max-debug-subscribers: 8
+  debug-message-interval-ticks: 1
+
+checks:
+  protocol:
+    invalid_position:
+      enabled: true
+      violation-increment: 6.0
+      decay-per-tick: 0.01
+      max-violation-level: 200.0
+      minimum-confidence: 0.9
+      alert-threshold: 1.0
+
+  movement:
+    vertical_motion:
+      enabled: true
+      violation-increment: 1.5
+      decay-per-tick: 0.02
+      max-violation-level: 200.0
+      minimum-confidence: 0.35
+      alert-threshold: 3.0
+      setback-enabled: true
+      setback-threshold: 6.0
+      options:
+        tolerance: 0.006
+        minimum-airborne-samples: 2
+        required-streak: 2
+        severity-scale: 0.12
+
+    horizontal_speed:
+      enabled: true
+      violation-increment: 1.0
+      decay-per-tick: 0.02
+      max-violation-level: 200.0
+      minimum-confidence: 0.35
+      alert-threshold: 4.0
+      setback-enabled: true
+      setback-threshold: 8.0
+      options:
+        relative-tolerance: 0.03
+        absolute-tolerance: 0.005
+        required-streak: 2
+        severity-scale: 0.35
+
+    ground_spoof:
+      enabled: true
+      violation-increment: 1.0
+      decay-per-tick: 0.02
+      max-violation-level: 200.0
+      minimum-confidence: 0.4
+      alert-threshold: 4.0
+      options:
+        minimum-distance: 0.6
+        required-streak: 4
+        severity-scale: 2.0
+
+    no_fall:
+      enabled: true
+      violation-increment: 1.5
+      decay-per-tick: 0.02
+      max-violation-level: 200.0
+      minimum-confidence: 0.4
+      alert-threshold: 3.0
+      options:
+        minimum-drop: 4.0
+        reported-ratio: 0.5
+        required-streak: 3
+        severity-scale: 12.0
+
+    timer:
+      enabled: true
+      violation-increment: 2.0
+      decay-per-tick: 0.01
+      max-violation-level: 200.0
+      minimum-confidence: 0.4
+      alert-threshold: 2.0
+      options:
+        drift-threshold-millis: 600.0
+        maximum-credit-millis: 120.0
+        idle-reset-millis: 1000.0
+        minimum-samples: 40
+        severity-scale: 900.0
+
+  combat:
+    reach:
+      enabled: true
+      violation-increment: 1.0
+      decay-per-tick: 0.02
+      max-violation-level: 200.0
+      minimum-confidence: 0.4
+      alert-threshold: 4.0
+      options:
+        tolerance: 0.06
+        latency-tolerance: 0.03
+        severity-scale: 1.2
+
+    attack_rhythm:
+      enabled: true
+      violation-increment: 2.0
+      decay-per-tick: 0.01
+      max-violation-level: 200.0
+      minimum-confidence: 0.5
+      alert-threshold: 3.0
+      options:
+        minimum-samples: 24
+        minimum-cps: 7.0
+        maximum-deviation-millis: 6.0
+
+  interaction:
+    fast_break:
+      enabled: true
+      violation-increment: 1.5
+      decay-per-tick: 0.02
+      max-violation-level: 200.0
+      minimum-confidence: 0.45
+      alert-threshold: 3.0
+      options:
+        tolerance-ticks: 2.0
+        severity-scale-ratio: 0.6
+
+    block_reach:
+      enabled: true
+      violation-increment: 1.0
+      decay-per-tick: 0.02
+      max-violation-level: 200.0
+      minimum-confidence: 0.45
+      alert-threshold: 4.0
+      options:
+        tolerance: 0.1
+        latency-tolerance: 0.04
+        severity-scale: 1.5
+
+    invalid_placement:
+      enabled: true
+      violation-increment: 2.0
+      decay-per-tick: 0.02
+      max-violation-level: 200.0
+      minimum-confidence: 0.5
+      alert-threshold: 2.0
+      options:
+        severity: 0.8

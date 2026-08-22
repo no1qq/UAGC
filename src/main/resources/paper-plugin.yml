@@ -1,0 +1,104 @@
+name: UAGC
+version: '${version}'
+main: io.github.no1qq.uagc.bukkit.UagcPlugin
+api-version: '1.21'
+description: UltimateAntiGamingChair, a context aware anti cheat platform for Paper
+authors:
+  - no1qq
+website: https://github.com/no1qq/UAGC
+permissions:
+  uagc.admin:
+    description: Grants every UAGC permission
+    default: op
+    children:
+      uagc.command: true
+      uagc.alerts: true
+      uagc.bypass: true
+  uagc.command:
+    description: Allows access to the base uagc command
+    default: op
+    children:
+      uagc.command.help: true
+      uagc.command.status: true
+      uagc.command.info: true
+      uagc.command.profile: true
+      uagc.command.checks: true
+      uagc.command.violations: true
+      uagc.command.evidence: true
+      uagc.command.exemptions: true
+      uagc.command.alerts: true
+      uagc.command.freeze: true
+      uagc.command.unfreeze: true
+      uagc.command.bypass: true
+      uagc.command.punish: true
+      uagc.command.kick: true
+      uagc.command.ban: true
+      uagc.command.unban: true
+      uagc.command.debug: true
+      uagc.command.reload: true
+  uagc.command.help:
+    default: op
+  uagc.command.status:
+    default: op
+  uagc.command.info:
+    default: op
+  uagc.command.profile:
+    default: op
+  uagc.command.checks:
+    default: op
+  uagc.command.violations:
+    default: op
+  uagc.command.evidence:
+    default: op
+  uagc.command.exemptions:
+    default: op
+  uagc.command.alerts:
+    default: op
+  uagc.command.freeze:
+    default: op
+  uagc.command.unfreeze:
+    default: op
+  uagc.command.bypass:
+    default: op
+  uagc.command.punish:
+    default: op
+  uagc.command.kick:
+    default: op
+  uagc.command.ban:
+    default: op
+  uagc.command.unban:
+    default: op
+  uagc.command.debug:
+    default: op
+  uagc.command.reload:
+    default: op
+  uagc.alerts:
+    description: Grants alert related permissions
+    default: op
+    children:
+      uagc.alerts.view: true
+  uagc.alerts.view:
+    description: Receives UAGC detection alerts
+    default: op
+  uagc.bypass:
+    description: Parent node for every bypass, grant the children individually
+    default: false
+  uagc.bypass.all:
+    description: Bypasses every check, visible to staff through uagc info
+    default: false
+  uagc.bypass.movement:
+    default: false
+  uagc.bypass.combat:
+    default: false
+  uagc.bypass.interaction:
+    default: false
+  uagc.bypass.inventory:
+    default: false
+  uagc.bypass.protocol:
+    default: false
+  uagc.freeze.immune:
+    description: Cannot be frozen by UAGC staff commands
+    default: false
+  uagc.punish.immune:
+    description: Cannot be punished by UAGC staff commands
+    default: false
