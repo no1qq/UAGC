@@ -129,6 +129,10 @@ public final class SprintDirectionCheck implements Check<MovementEvent, SprintDi
             return CheckResult.passed();
         }
 
+        if (state.consecutive == 0 && context.support().hasNearbyPusher(player.uuid())) {
+            return CheckResult.passed();
+        }
+
         state.consecutive++;
         int requiredStreak = context.config().optionInt("required-streak", 6);
         if (state.consecutive < requiredStreak) {

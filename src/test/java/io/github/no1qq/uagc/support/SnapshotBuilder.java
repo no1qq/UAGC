@@ -92,18 +92,26 @@ public final class SnapshotBuilder {
     }
 
     public SnapshotBuilder sprinting(boolean value) {
-        this.activity = new ActivitySample(value, activity.sneaking(), activity.swimming(), activity.gliding(),
-                activity.climbing(), activity.riptiding(), activity.flying(), activity.allowFlight(),
-                activity.insideVehicle(), activity.sleeping(), activity.dead(), activity.gameMode(),
-                activity.vehicleType());
+        this.activity = new ActivitySample(value, activity.sneaking(), activity.usingItem(),
+                activity.swimming(), activity.gliding(), activity.climbing(), activity.riptiding(),
+                activity.flying(), activity.allowFlight(), activity.insideVehicle(), activity.sleeping(),
+                activity.dead(), activity.gameMode(), activity.vehicleType());
+        return this;
+    }
+
+    public SnapshotBuilder usingItem(boolean value) {
+        this.activity = new ActivitySample(activity.sprinting(), activity.sneaking(), value,
+                activity.swimming(), activity.gliding(), activity.climbing(), activity.riptiding(),
+                activity.flying(), activity.allowFlight(), activity.insideVehicle(), activity.sleeping(),
+                activity.dead(), activity.gameMode(), activity.vehicleType());
         return this;
     }
 
     public SnapshotBuilder gameMode(GameModeType mode) {
-        this.activity = new ActivitySample(activity.sprinting(), activity.sneaking(), activity.swimming(),
-                activity.gliding(), activity.climbing(), activity.riptiding(), activity.flying(),
-                activity.allowFlight(), activity.insideVehicle(), activity.sleeping(), activity.dead(),
-                mode, activity.vehicleType());
+        this.activity = new ActivitySample(activity.sprinting(), activity.sneaking(), activity.usingItem(),
+                activity.swimming(), activity.gliding(), activity.climbing(), activity.riptiding(),
+                activity.flying(), activity.allowFlight(), activity.insideVehicle(), activity.sleeping(),
+                activity.dead(), mode, activity.vehicleType());
         return this;
     }
 

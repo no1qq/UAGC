@@ -40,6 +40,12 @@ public final class Surfaces {
                 SurfaceSample.DEFAULT_FRICTION, true, "ladder");
     }
 
+    public static SurfaceSample cobweb() {
+        return new SurfaceSample(true, true, 0.0D, false, false, false, false, false, false,
+                false, false, false, false, false, false, true, false, false,
+                SurfaceSample.DEFAULT_FRICTION, true, "stone");
+    }
+
     public static SurfaceSample slime() {
         return new SurfaceSample(true, true, 0.0D, false, false, false, false, false, false,
                 false, true, false, false, false, false, false, false, false,

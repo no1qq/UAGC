@@ -61,7 +61,7 @@ speed attribute and vehicles all pass, while a sustained 0.75 blocks per tick is
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `relative-tolerance` | 0.03 | proportional slack on the envelope |
+| `relative-tolerance` | 0.012 | proportional slack on the envelope, 0.03 let a 0.30 per tick strafe cheat sit just inside the limit |
 | `absolute-tolerance` | 0.005 | absolute slack on the envelope |
 | `required-streak` | 2 | consecutive excesses before flagging |
 | `severity-scale` | 0.35 | proportional excess mapping to full severity |
@@ -144,21 +144,33 @@ applied velocity.
 
 ### timer
 
-Maintains a running balance of packet arrival time against real time. Each movement packet adds the
-elapsed milliseconds and subtracts one tick of 50 ms. A client running faster than real time drives the
-balance negative.
+Runs a spending account against the wall clock, in the style Grim uses. The balance starts
+`clock-drift-millis` behind real time, every movement packet spends 50 ms of it, and the balance is
+never allowed to fall further behind than that same drift. A client whose clock runs fast sends packets
+closer together than 50 ms apart, spends faster than real time replenishes, and eventually overdraws.
+Every overdraw is a flag, and the balance is pulled back by one tick so the next one has to be earned
+again.
 
-Credit is capped so an idle player cannot bank time and then spend it on a burst, and the balance
-resets outright when the server skips ticks or is lagging. That combination is what separates a genuine
-timer from a packet burst after a lag spike.
+The earlier version accumulated drift and only flagged past 600 ms of it, while resetting outright on
+any gap over a second. A 1.004 timer drifts 0.2 ms per tick, so it needed roughly 3000 uninterrupted
+packets to reach that threshold and any pause wiped the progress. It was free in practice. Starting the
+balance one drift window behind and flagging the moment it is overdrawn removes that.
+
+The drift window is what a legitimate client lives inside. It cannot be banked: a player who pauses,
+lags or stands still has the balance clamped back to exactly one window behind, never further, so a lag
+spike cannot be converted into a burst afterwards. Latency is credited separately up to
+`maximum-latency-credit-millis`, and the whole check suspends while the server itself is lagging.
+
+One honest limitation. UAGC reads Paper events, not packets, so it only sees movement that changes
+position or rotation. A perfectly stationary client sends packets this check never observes. That makes
+it weaker than a packet level timer, but it does not weaken it against a moving player, which is when a
+timer is worth having.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `drift-threshold-millis` | 600 | accumulated drift before flagging |
-| `maximum-credit-millis` | 120 | cap on banked time |
-| `idle-reset-millis` | 1000 | gap after which the balance resets |
-| `minimum-samples` | 40 | packets required before judging |
-| `severity-scale` | 900 | drift mapping to full severity |
+| `clock-drift-millis` | 120 | how far behind real time the balance sits and may fall |
+| `maximum-latency-credit-millis` | 1000 | cap on the extra allowance given for ping |
+| `severity-scale` | 200 | overdraw mapping to full severity |
 
 ## Combat
 
@@ -243,3 +255,53 @@ confidence.
 Every check also accepts the standard keys documented in [Configuration](configuration.md):
 `enabled`, `violation-increment`, `decay-per-tick`, `max-violation-level`, `minimum-confidence`,
 `alert-threshold`, `setback-enabled`, `setback-threshold` and `cancel-enabled`.
+
+### no_slow
+
+Vanilla multiplies movement input by `0.2` while an item is being used, so eating, drinking, drawing a
+bow, charging a crossbow, blocking with a shield or looking through a spyglass all crawl. NoSlow
+removes that multiplier client side and moves at full speed.
+
+UAGC now samples `isHandRaised` into `ActivitySample.usingItem`, which is what makes this detectable at
+all. Before that the engine had no idea an item was in use, so the speed envelope was always the
+unrestricted one and NoSlow was inside it by construction, at every delay tick value.
+
+The check runs the same envelope as `horizontal_speed` with the movement speed scaled by
+`use-item-multiplier`, so it inherits friction, attributes, potion effects and surface handling for
+free. Starting to use an item at a sprint does not snap you to the slow speed, you coast down over
+several ticks, so `settle-ticks` passes before anything is measured and the envelope decays naturally
+from whatever speed you were carrying.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `use-item-multiplier` | 0.2 | vanilla input multiplier while an item is in use |
+| `relative-tolerance` | 0.05 | proportional slack on the clamped envelope |
+| `absolute-tolerance` | 0.005 | absolute slack on the clamped envelope |
+| `settle-ticks` | 4.0 | ticks after the item is raised before measuring |
+| `velocity-grace-ticks` | 20.0 | ticks after server applied velocity that are ignored |
+| `required-streak` | 4 | consecutive excesses before flagging |
+| `severity-scale` | 0.3 | proportional excess mapping to full severity |
+
+### no_web
+
+A cobweb sets a stuck speed multiplier that collapses horizontal motion to roughly a quarter every
+tick. NoWeb ignores it and walks through at normal speed.
+
+This one was not a modelling gap, it was an exclusion. `MovementApplicability` lists cobwebs among the
+surfaces `horizontal_speed` refuses to measure, which turned a false positive guard into a guaranteed
+blind spot. Rather than remove that bail out and have the normal envelope pass anything slower than
+sprinting, `no_web` owns the case with the correct clamp.
+
+It shares `RestrictedSpeedModel` with `no_slow`, just with `web-multiplier` instead. Running into a web
+at sprint speed bleeds off over several ticks, so `settle-ticks` and the decaying envelope handle the
+entry the same way.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `web-multiplier` | 0.25 | vanilla cobweb clamp on horizontal motion |
+| `relative-tolerance` | 0.05 | proportional slack on the clamped envelope |
+| `absolute-tolerance` | 0.005 | absolute slack on the clamped envelope |
+| `settle-ticks` | 3.0 | ticks after entering the web before measuring |
+| `velocity-grace-ticks` | 20.0 | ticks after server applied velocity that are ignored |
+| `required-streak` | 3 | consecutive excesses before flagging |
+| `severity-scale` | 0.3 | proportional excess mapping to full severity |

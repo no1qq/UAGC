@@ -107,7 +107,7 @@ checks:
       setback-enabled: true
       setback-threshold: 8.0
       options:
-        relative-tolerance: 0.03
+        relative-tolerance: 0.012
         absolute-tolerance: 0.005
         required-streak: 2
         severity-scale: 0.35
@@ -153,19 +153,49 @@ checks:
         required-streak: 3
         severity-scale: 12.0
 
+    no_slow:
+      enabled: true
+      violation-increment: 1.0
+      decay-per-tick: 0.02
+      max-violation-level: 200.0
+      minimum-confidence: 0.4
+      alert-threshold: 4.0
+      options:
+        use-item-multiplier: 0.2
+        relative-tolerance: 0.05
+        absolute-tolerance: 0.005
+        settle-ticks: 4.0
+        velocity-grace-ticks: 20.0
+        required-streak: 4
+        severity-scale: 0.3
+
+    no_web:
+      enabled: true
+      violation-increment: 1.0
+      decay-per-tick: 0.02
+      max-violation-level: 200.0
+      minimum-confidence: 0.4
+      alert-threshold: 4.0
+      options:
+        web-multiplier: 0.25
+        relative-tolerance: 0.05
+        absolute-tolerance: 0.005
+        settle-ticks: 3.0
+        velocity-grace-ticks: 20.0
+        required-streak: 3
+        severity-scale: 0.3
+
     timer:
       enabled: true
       violation-increment: 2.0
       decay-per-tick: 0.01
       max-violation-level: 200.0
       minimum-confidence: 0.4
-      alert-threshold: 2.0
+      alert-threshold: 4.0
       options:
-        drift-threshold-millis: 600.0
-        maximum-credit-millis: 120.0
-        idle-reset-millis: 1000.0
-        minimum-samples: 40
-        severity-scale: 900.0
+        clock-drift-millis: 120.0
+        maximum-latency-credit-millis: 1000.0
+        severity-scale: 200.0
 
   combat:
     reach:

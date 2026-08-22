@@ -70,6 +70,7 @@ public final class PlayerSampler {
         return new ActivitySample(
                 player.isSprinting(),
                 player.isSneaking(),
+                player.isHandRaised(),
                 player.isSwimming(),
                 player.isGliding(),
                 player.isClimbing(),

@@ -3,6 +3,7 @@ package io.github.no1qq.uagc.engine.movement;
 public record ActivitySample(
         boolean sprinting,
         boolean sneaking,
+        boolean usingItem,
         boolean swimming,
         boolean gliding,
         boolean climbing,
@@ -16,7 +17,7 @@ public record ActivitySample(
         String vehicleType) {
 
     public static ActivitySample idle() {
-        return new ActivitySample(false, false, false, false, false, false, false, false, false, false, false,
+        return new ActivitySample(false, false, false, false, false, false, false, false, false, false, false, false,
                 GameModeType.SURVIVAL, null);
     }
 

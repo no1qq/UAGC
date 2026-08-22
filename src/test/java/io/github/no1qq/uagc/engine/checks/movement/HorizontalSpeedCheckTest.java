@@ -82,7 +82,7 @@ class HorizontalSpeedCheckTest {
     void vehicleMovementIsSkipped() {
         MovementCheckHarness<HorizontalSpeedCheck.State> harness = harness();
         ActivitySample inVehicle = new ActivitySample(false, false, false, false, false, false,
-                false, false, true, false, false, GameModeType.SURVIVAL, "MINECART");
+                false, false, false, true, false, false, GameModeType.SURVIVAL, "MINECART");
         Vec3 position = Vec3.ZERO;
         for (int tick = 1; tick <= 30; tick++) {
             Vec3 next = new Vec3(position.x() + 1.4D, position.y(), position.z());
