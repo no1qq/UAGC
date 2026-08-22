@@ -82,11 +82,21 @@ while strafing sits at roughly 45 degrees. Anything past 60 degrees sustained ca
 vanilla client holding forward.
 
 It only measures a player who is sprinting, on the ground, on a normal friction surface, not
-colliding horizontally, moving a real distance, not recently given velocity by the server, and not
-turning sharply this tick. Every one of those bail outs exists because it produces sideways travel
-for a legitimate player: ice carries momentum through a turn, knockback throws you sideways with
-sprint still latched on, a wall slides you along it, and a fast mouse turn makes travel lag facing
-for a tick or two. On top of that it needs six consecutive ticks before it flags.
+colliding horizontally, moving a real distance, not recently given velocity by the server, not within
+a second of landing or taking a hit, and not turning sharply this tick. Every one of those bail outs
+exists because it produces sideways travel for a legitimate player: ice carries momentum through a
+turn, knockback throws you sideways with sprint still latched on, a wall slides you along it, and a
+fast mouse turn makes travel lag facing for a tick or two. On top of that it needs six consecutive
+ticks before it flags.
+
+The combat bail out is the one that matters most. Landing a hit while sprinting is the most common
+action in the game and it does three things this model cannot see: vanilla clears your sprint flag,
+multiplies your horizontal motion by `0.6`, and leaves you pressed against a hitbox that shoves you
+sideways while you keep holding forward and keep facing the target. That reads as sustained sideways
+sprinting and it is completely legitimate, so any tick within `combat-grace-ticks` of an attack landed
+or taken is skipped outright. The cost is that a cheat can hide omni sprint by swinging constantly.
+That trade is deliberate. A false ban on someone punching a zombie is worse than a missed detection
+on someone who has to keep attacking to stay hidden.
 
 The test suite verifies that forward sprinting, diagonal sprinting, walking sideways, ice, knockback,
 a stationary player and a brief sideways burst all pass, while sustained sideways and backward
@@ -98,6 +108,7 @@ sprinting are detected.
 | `maximum-turn-degrees` | 40.0 | a sharper turn than this skips the tick |
 | `minimum-distance` | 0.08 | movement below this has no reliable direction |
 | `velocity-grace-ticks` | 20.0 | ticks after server applied velocity that are ignored |
+| `combat-grace-ticks` | 20.0 | ticks after an attack landed or was taken that are ignored |
 | `required-streak` | 6 | consecutive offending ticks before flagging |
 | `severity-scale` | 0.6 | proportional excess mapping to full severity |
 

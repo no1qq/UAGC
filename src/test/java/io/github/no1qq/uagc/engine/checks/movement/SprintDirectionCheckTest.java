@@ -6,6 +6,8 @@ import io.github.no1qq.uagc.support.SnapshotBuilder;
 import io.github.no1qq.uagc.support.Surfaces;
 import org.junit.jupiter.api.Test;
 
+import java.util.UUID;
+
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -104,6 +106,63 @@ class SprintDirectionCheckTest {
         harness.player().velocity().record(new Vec3(0.5D, 0.0D, 0.0D), 1L, "damage");
         run(harness, SPRINT_PER_TICK, 0.0D, 0.0F, 15, true);
         assertFalse(harness.flagged(), "knockback moves you sideways while sprint is still latched on");
+    }
+
+    @Test
+    void hittingAnEntityWhileSprintingIsNeverFlagged() {
+        MovementCheckHarness<SprintDirectionCheck.State> harness = harness();
+        Vec3 position = Vec3.ZERO;
+        for (int tick = 1; tick <= 60; tick++) {
+            boolean swinging = tick >= 10;
+            if (swinging && (tick - 10) % 12 == 0) {
+                harness.player().combat().recordAttack(UUID.randomUUID(), tick, tick * 50L);
+            }
+            double dx = swinging ? SPRINT_PER_TICK * 0.6D : 0.0D;
+            double dz = swinging ? 0.0D : SPRINT_PER_TICK;
+            Vec3 next = new Vec3(position.x() + dx, position.y(), position.z() + dz);
+            harness.feed(SnapshotBuilder.create()
+                    .tick(tick)
+                    .from(position)
+                    .to(next)
+                    .fromRotation(0.0F, 0.0F)
+                    .rotation(0.0F, 0.0F)
+                    .sprinting(true)
+                    .surface(Surfaces.ground())
+                    .build());
+            position = next;
+        }
+        assertFalse(harness.flagged(),
+                "hitting an entity kills your sprint, cuts your speed and lets its hitbox shove you "
+                        + "sideways, none of which this check models");
+    }
+
+    @Test
+    void takingDamageWhileSprintingIsNeverFlagged() {
+        MovementCheckHarness<SprintDirectionCheck.State> harness = harness();
+        harness.player().combat().recordDamageTaken(1L);
+        run(harness, SPRINT_PER_TICK, 0.0D, 0.0F, 15, true);
+        assertFalse(harness.flagged(), "being hit shoves you sideways with sprint still latched on");
+    }
+
+    @Test
+    void omniSprintIsStillCaughtAfterCombatEnds() {
+        MovementCheckHarness<SprintDirectionCheck.State> harness = harness();
+        harness.player().combat().recordAttack(UUID.randomUUID(), 1L, 50L);
+        Vec3 position = Vec3.ZERO;
+        for (int tick = 30; tick <= 90; tick++) {
+            Vec3 next = new Vec3(position.x() + SPRINT_PER_TICK, position.y(), position.z());
+            harness.feed(SnapshotBuilder.create()
+                    .tick(tick)
+                    .from(position)
+                    .to(next)
+                    .fromRotation(0.0F, 0.0F)
+                    .rotation(0.0F, 0.0F)
+                    .sprinting(true)
+                    .surface(Surfaces.ground())
+                    .build());
+            position = next;
+        }
+        assertTrue(harness.flagged(), "the combat grace must expire, not disable the check forever");
     }
 
     @Test

@@ -124,6 +124,7 @@ checks:
         maximum-turn-degrees: 40.0
         minimum-distance: 0.08
         velocity-grace-ticks: 20.0
+        combat-grace-ticks: 20.0
         required-streak: 6
         severity-scale: 0.6
 

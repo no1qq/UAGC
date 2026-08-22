@@ -87,6 +87,17 @@ public final class SprintDirectionCheck implements Check<MovementEvent, SprintDi
             return CheckResult.passed();
         }
 
+        long combatGrace = (long) context.config().option("combat-grace-ticks", 20.0D);
+        if (player.combat().isInCombat(event.tick(), combatGrace)) {
+            state.reset();
+            return CheckResult.passed();
+        }
+        long lastDamaged = player.combat().lastDamageTakenTick();
+        if (lastDamaged != Long.MIN_VALUE && event.tick() - lastDamaged <= combatGrace) {
+            state.reset();
+            return CheckResult.passed();
+        }
+
         float maximumTurn = (float) context.config().option("maximum-turn-degrees", 40.0D);
         if (Math.abs(snapshot.fromRotation().yawDifference(snapshot.toRotation())) > maximumTurn) {
             state.reset();
