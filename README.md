@@ -25,7 +25,8 @@ The Gradle wrapper is committed, so no local Gradle install is needed.
 ```
 
 On Windows, `build.bat` does the same thing on a double click. It clears stale jars out of
-`build/libs` first, so exactly one jar is ever left there. Pass `clean` to force a full rebuild.
+`build/libs` first, so exactly one jar is ever left there, and copies the result into
+`../TestServer/plugins` if that folder exists. Pass `clean` to force a full rebuild.
 
 The plugin jar is written to `build/libs/UAGC-<version>.jar`. Drop it into your server `plugins` folder.
 

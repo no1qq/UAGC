@@ -3,10 +3,6 @@ setlocal enabledelayedexpansion
 title UAGC build
 cd /d "%~dp0"
 
-echo.
-echo  UAGC build
-echo.
-
 rem gradle needs java on PATH, the build itself pins java 21 through a toolchain
 where java >nul 2>&1
 if errorlevel 1 goto :no_java
@@ -26,9 +22,9 @@ set "BUILT="
 for /f "delims=" %%f in ('dir /b /o-d "build\libs\UAGC-*.jar" 2^>nul') do call :report "%%f"
 if not defined BUILT goto :no_jar
 
-echo.
-echo  drop it in a plugins folder, or just run ..\TestServer\start.bat
-echo  which copies the newest jar from here on every launch.
+rem hand the fresh jar straight to the local test server when one exists
+if exist "..\TestServer\plugins" call :deploy
+
 echo.
 pause
 exit /b 0
@@ -37,12 +33,17 @@ exit /b 0
 if defined BUILT exit /b 0
 set "BUILT=%~1"
 echo  [ok] build\libs\%~1
-for %%s in ("build\libs\%~1") do echo       %%~zs bytes
+exit /b 0
+
+:deploy
+del /q "..\TestServer\plugins\UAGC-*.jar" >nul 2>&1
+copy /y "build\libs\%BUILT%" "..\TestServer\plugins\%BUILT%" >nul
+if errorlevel 1 exit /b 0
+echo  [ok] copied into ..\TestServer\plugins
 exit /b 0
 
 :no_java
 echo  [x] java is not on PATH.
-echo      install a java 21 jdk, open a new window, run this again.
 echo.
 pause
 exit /b 1
