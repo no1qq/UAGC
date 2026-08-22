@@ -40,7 +40,8 @@ final class AlertCommands {
 
     private static AlertSettings settings(CommandSourceStack source, UagcRuntime runtime) {
         if (!(source.getSender() instanceof Player player)) {
-            CommandSupport.error(source, "alert settings are per player and cannot be used from the console");
+            CommandSupport.error(source, "verbose and mute are per player filters, "
+                    + "the console can only turn its own alerts on or off");
             return null;
         }
         PlayerData data = runtime.players().get(player.getUniqueId());
@@ -53,8 +54,7 @@ final class AlertCommands {
 
     private static int toggle(CommandSourceStack source, UagcRuntime runtime, Boolean desired) {
         if (!(source.getSender() instanceof Player player)) {
-            CommandSupport.error(source, "alert settings are per player and cannot be used from the console");
-            return Command.SINGLE_SUCCESS;
+            return console(source, runtime, desired);
         }
         AlertSettings settings = settings(source, runtime);
         if (settings == null) {
@@ -69,6 +69,19 @@ final class AlertCommands {
         }
         runtime.alerts().remember(player.getUniqueId(), enabled);
         CommandSupport.send(source, "alerts are now "
+                + (enabled ? "<green>enabled</green>" : "<gray>disabled</gray>"));
+        return Command.SINGLE_SUCCESS;
+    }
+
+    private static int console(CommandSourceStack source, UagcRuntime runtime, Boolean desired) {
+        boolean enabled;
+        if (desired == null) {
+            enabled = runtime.alerts().toggleConsoleAlerts();
+        } else {
+            runtime.alerts().setConsoleAlerts(desired);
+            enabled = desired;
+        }
+        CommandSupport.send(source, "console alerts are now "
                 + (enabled ? "<green>enabled</green>" : "<gray>disabled</gray>"));
         return Command.SINGLE_SUCCESS;
     }

@@ -66,7 +66,7 @@ which is not recommended.
 | `default-minimum-confidence` | `0.35` | confidence floor for a new staff member |
 | `default-minimum-violation-level` | `1.0` | violation floor for a new staff member |
 | `cooldown-ticks` | `20` | minimum gap between alerts for the same player and check |
-| `send-to-console` | `true` | mirror alerts to the console |
+| `send-to-console` | `true` | mirror alerts to the console, toggleable live with `/uagc alerts` run from the console, which then overrides this until toggled back |
 
 Placeholders available in `format` and `hover-format`: `<player>`, `<uuid>`, `<check>`, `<check_id>`,
 `<category>`, `<vl>`, `<confidence>`, `<severity>`, `<ping>`, `<tps>`, `<summary>`, `<repeat>`.

@@ -24,7 +24,7 @@ completion.
 
 | Command | Permission | Purpose |
 | --- | --- | --- |
-| `/uagc alerts [on/off]` | `uagc.command.alerts` | toggle your own alerts |
+| `/uagc alerts [on/off]` | `uagc.command.alerts` | toggle your own alerts, or the console output when run from the console |
 | `/uagc alerts verbose` | `uagc.command.alerts` | drop your confidence and violation floors to zero |
 | `/uagc alerts mute (target)` | `uagc.command.alerts` | mute or unmute a category or a single check |
 | `/uagc debug (player) [check]` | `uagc.command.debug` | stream live check internals for one player |
@@ -41,6 +41,12 @@ other staff member. Only `alerts.enabled` in `config.yml` does that.
 relogging and restarts. It is written the moment the command runs. Once a staff member has chosen,
 `enabled-by-default-for-staff` no longer applies to them, in either direction. `verbose` and `mute`
 are session only and reset on rejoin.
+
+Run the same command from the server console and it toggles the console output instead, because the
+console has no personal alert settings to flip. `/uagc alerts`, `/uagc alerts on` and
+`/uagc alerts off` all work there. It is the same switch as `alerts.send-to-console` in `config.yml`,
+it is stored in the same `alert-preferences.yml`, and once the command has been used it wins over the
+config file until it is used again. `verbose` and `mute` remain player only and still refuse.
 
 ### Moderation
 

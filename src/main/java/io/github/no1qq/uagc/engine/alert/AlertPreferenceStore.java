@@ -1,22 +1,19 @@
 package io.github.no1qq.uagc.engine.alert;
 
-import java.util.Map;
-import java.util.UUID;
-
 public interface AlertPreferenceStore {
 
     AlertPreferenceStore MEMORY_ONLY = new AlertPreferenceStore() {
         @Override
-        public Map<UUID, Boolean> load() {
-            return Map.of();
+        public AlertPreferences load() {
+            return AlertPreferences.empty();
         }
 
         @Override
-        public void save(Map<UUID, Boolean> preferences) {
+        public void save(AlertPreferences preferences) {
         }
     };
 
-    Map<UUID, Boolean> load();
+    AlertPreferences load();
 
-    void save(Map<UUID, Boolean> preferences);
+    void save(AlertPreferences preferences);
 }

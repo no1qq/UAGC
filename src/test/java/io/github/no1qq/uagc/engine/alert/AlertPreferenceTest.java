@@ -8,10 +8,6 @@ import io.github.no1qq.uagc.support.StubChecks;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -20,18 +16,17 @@ class AlertPreferenceTest {
 
     private static final class RecordingStore implements AlertPreferenceStore {
 
-        private final Map<UUID, Boolean> stored = new HashMap<>();
+        private AlertPreferences stored = AlertPreferences.empty();
         private int saves;
 
         @Override
-        public Map<UUID, Boolean> load() {
-            return Map.copyOf(stored);
+        public AlertPreferences load() {
+            return stored;
         }
 
         @Override
-        public void save(Map<UUID, Boolean> preferences) {
-            stored.clear();
-            stored.putAll(preferences);
+        public void save(AlertPreferences preferences) {
+            stored = preferences;
             saves++;
         }
     }
@@ -104,5 +99,30 @@ class AlertPreferenceTest {
         staff.alertSettings().setEnabled(true);
         reloaded.applyTo(staff, true);
         assertFalse(staff.alertSettings().enabled(), "the opt out must come back after a restart");
+    }
+
+    @Test
+    void consoleFollowsTheConfigUntilItIsToggled() {
+        assertTrue(alerts.consoleAlertsEnabled(), "send-to-console defaults to true");
+        assertFalse(alerts.toggleConsoleAlerts(), "toggling from console must turn it off");
+        assertFalse(alerts.consoleAlertsEnabled());
+        assertTrue(alerts.toggleConsoleAlerts(), "and toggling again must turn it back on");
+    }
+
+    @Test
+    void theConsoleChoiceOutlivesARestart() {
+        alerts.setConsoleAlerts(false);
+
+        AlertService reloaded = new AlertService(harness.players(), harness.server(), harness.messages(),
+                UagcConfig.defaults().alerts(), store);
+        reloaded.loadPersisted();
+        assertFalse(reloaded.consoleAlertsEnabled(), "a silenced console must stay silent after a restart");
+    }
+
+    @Test
+    void silencingTheConsoleLeavesStaffAlertsAlone() {
+        alerts.applyTo(staff, true);
+        alerts.setConsoleAlerts(false);
+        assertTrue(staff.alertSettings().enabled(), "the console toggle must not touch any player");
     }
 }

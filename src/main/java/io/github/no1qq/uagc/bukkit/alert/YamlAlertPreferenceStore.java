@@ -1,6 +1,7 @@
 package io.github.no1qq.uagc.bukkit.alert;
 
 import io.github.no1qq.uagc.engine.alert.AlertPreferenceStore;
+import io.github.no1qq.uagc.engine.alert.AlertPreferences;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 
@@ -22,31 +23,35 @@ public final class YamlAlertPreferenceStore implements AlertPreferenceStore {
     }
 
     @Override
-    public Map<UUID, Boolean> load() {
-        Map<UUID, Boolean> preferences = new LinkedHashMap<>();
+    public AlertPreferences load() {
         if (!file.exists()) {
-            return preferences;
+            return AlertPreferences.empty();
         }
         YamlConfiguration configuration = YamlConfiguration.loadConfiguration(file);
-        ConfigurationSection root = configuration.getConfigurationSection("alerts");
-        if (root == null) {
-            return preferences;
-        }
-        for (String key : root.getKeys(false)) {
-            try {
-                preferences.put(UUID.fromString(key), root.getBoolean(key));
-            } catch (IllegalArgumentException exception) {
-                logger.warning("ignoring malformed alert preference: " + key);
+        Boolean console = configuration.isSet("console") ? configuration.getBoolean("console") : null;
+
+        Map<UUID, Boolean> players = new LinkedHashMap<>();
+        ConfigurationSection root = configuration.getConfigurationSection("players");
+        if (root != null) {
+            for (String key : root.getKeys(false)) {
+                try {
+                    players.put(UUID.fromString(key), root.getBoolean(key));
+                } catch (IllegalArgumentException exception) {
+                    logger.warning("ignoring malformed alert preference: " + key);
+                }
             }
         }
-        return preferences;
+        return new AlertPreferences(players, console);
     }
 
     @Override
-    public void save(Map<UUID, Boolean> preferences) {
+    public void save(AlertPreferences preferences) {
         YamlConfiguration configuration = new YamlConfiguration();
-        for (Map.Entry<UUID, Boolean> entry : preferences.entrySet()) {
-            configuration.set("alerts." + entry.getKey(), entry.getValue());
+        if (preferences.console() != null) {
+            configuration.set("console", preferences.console());
+        }
+        for (Map.Entry<UUID, Boolean> entry : preferences.players().entrySet()) {
+            configuration.set("players." + entry.getKey(), entry.getValue());
         }
         try {
             File parent = file.getParentFile();

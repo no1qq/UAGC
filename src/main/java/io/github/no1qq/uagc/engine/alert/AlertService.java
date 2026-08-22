@@ -24,6 +24,7 @@ public final class AlertService {
     private final Map<UUID, Boolean> preferences = new ConcurrentHashMap<>();
 
     private volatile AlertConfig config;
+    private volatile Boolean consoleOverride;
 
     public AlertService(PlayerDataManager players, ServerContext server, MessageGateway messages, AlertConfig config) {
         this(players, server, messages, config, AlertPreferenceStore.MEMORY_ONLY);
@@ -42,17 +43,35 @@ public final class AlertService {
     }
 
     public void loadPersisted() {
+        AlertPreferences loaded = store.load();
         preferences.clear();
-        preferences.putAll(store.load());
+        preferences.putAll(loaded.players());
+        consoleOverride = loaded.console();
     }
 
     public void persist() {
-        store.save(Map.copyOf(preferences));
+        store.save(new AlertPreferences(preferences, consoleOverride));
     }
 
     public void remember(UUID playerId, boolean enabled) {
         preferences.put(playerId, enabled);
         persist();
+    }
+
+    public boolean consoleAlertsEnabled() {
+        Boolean override = consoleOverride;
+        return override != null ? override : config.sendToConsole();
+    }
+
+    public void setConsoleAlerts(boolean enabled) {
+        consoleOverride = enabled;
+        persist();
+    }
+
+    public boolean toggleConsoleAlerts() {
+        boolean enabled = !consoleAlertsEnabled();
+        setConsoleAlerts(enabled);
+        return enabled;
     }
 
     public void applyTo(PlayerData data, boolean hasViewPermission) {
@@ -96,7 +115,7 @@ public final class AlertService {
             }
             messages.sendAlert(candidate.uuid(), alert);
         }
-        if (current.sendToConsole()) {
+        if (consoleAlertsEnabled()) {
             messages.sendConsoleAlert(alert);
         }
     }
