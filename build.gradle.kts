@@ -3,7 +3,7 @@ plugins {
 }
 
 group = "io.github.no1qq"
-version = "0.1.0-SNAPSHOT"
+version = "0.1.0"
 
 val paperApiVersion = "1.21-R0.1-SNAPSHOT"
 val paperApiVersionNewest = "1.21.11-R0.1-SNAPSHOT"
