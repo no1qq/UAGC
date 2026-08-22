@@ -11,6 +11,7 @@ import io.github.no1qq.uagc.bukkit.listener.FreezeListener;
 import io.github.no1qq.uagc.bukkit.listener.InteractionListener;
 import io.github.no1qq.uagc.bukkit.listener.MovementListener;
 import io.github.no1qq.uagc.bukkit.listener.StateListener;
+import io.github.no1qq.uagc.engine.alert.AlertService;
 import io.github.no1qq.uagc.engine.config.UagcConfig;
 import io.github.no1qq.uagc.engine.player.PlayerData;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
@@ -43,6 +44,7 @@ public final class UagcPlugin extends JavaPlugin {
 
         runtime = new UagcRuntime(this, config, getLogger());
         runtime.freeze().loadPersisted();
+        runtime.alerts().loadPersisted();
 
         registerListeners();
         registerCommands();
@@ -52,6 +54,7 @@ public final class UagcPlugin extends JavaPlugin {
 
         for (Player player : Bukkit.getOnlinePlayers()) {
             PlayerData data = runtime.players().getOrCreate(player.getUniqueId(), player.getName());
+            runtime.alerts().applyTo(data, player.hasPermission(AlertService.PERMISSION_VIEW));
             runtime.bypass().refresh(data);
         }
 
@@ -68,6 +71,7 @@ public final class UagcPlugin extends JavaPlugin {
         }
         if (runtime != null) {
             runtime.freeze().persist();
+            runtime.alerts().persist();
             runtime.players().clear();
             runtime.debug().clear();
         }

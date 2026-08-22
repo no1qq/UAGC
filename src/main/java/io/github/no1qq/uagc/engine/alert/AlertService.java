@@ -10,6 +10,7 @@ import io.github.no1qq.uagc.engine.violation.Violation;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class AlertService {
 
@@ -18,15 +19,47 @@ public final class AlertService {
     private final PlayerDataManager players;
     private final ServerContext server;
     private final MessageGateway messages;
+    private final AlertPreferenceStore store;
     private final Map<String, Long> lastAlertTick = new HashMap<>();
+    private final Map<UUID, Boolean> preferences = new ConcurrentHashMap<>();
 
     private volatile AlertConfig config;
 
     public AlertService(PlayerDataManager players, ServerContext server, MessageGateway messages, AlertConfig config) {
+        this(players, server, messages, config, AlertPreferenceStore.MEMORY_ONLY);
+    }
+
+    public AlertService(PlayerDataManager players,
+                        ServerContext server,
+                        MessageGateway messages,
+                        AlertConfig config,
+                        AlertPreferenceStore store) {
         this.players = players;
         this.server = server;
         this.messages = messages;
         this.config = config;
+        this.store = store;
+    }
+
+    public void loadPersisted() {
+        preferences.clear();
+        preferences.putAll(store.load());
+    }
+
+    public void persist() {
+        store.save(Map.copyOf(preferences));
+    }
+
+    public void remember(UUID playerId, boolean enabled) {
+        preferences.put(playerId, enabled);
+        persist();
+    }
+
+    public void applyTo(PlayerData data, boolean hasViewPermission) {
+        Boolean explicit = preferences.get(data.uuid());
+        data.alertSettings().setEnabled(explicit != null
+                ? explicit
+                : config.enabledByDefaultForStaff() && hasViewPermission);
     }
 
     public void updateConfig(AlertConfig updated) {

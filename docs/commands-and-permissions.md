@@ -30,6 +30,18 @@ completion.
 | `/uagc debug (player) [check]` | `uagc.command.debug` | stream live check internals for one player |
 | `/uagc debug off` | `uagc.command.debug` | stop receiving debug output |
 
+Alerts are on the moment a staff member first joins holding `uagc.alerts.view`, with no command to
+run. Nothing has to be switched on to start seeing detections.
+
+Every one of these settings belongs to the staff member who ran the command and to nobody else.
+`/uagc alerts off` silences your own client, it does not turn alerts off for the server or for any
+other staff member. Only `alerts.enabled` in `config.yml` does that.
+
+`on` and `off` are remembered in `alert-preferences.yml` in the plugin folder, so the choice survives
+relogging and restarts. It is written the moment the command runs. Once a staff member has chosen,
+`enabled-by-default-for-staff` no longer applies to them, in either direction. `verbose` and `mute`
+are session only and reset on rejoin.
+
 ### Moderation
 
 | Command | Permission | Purpose |

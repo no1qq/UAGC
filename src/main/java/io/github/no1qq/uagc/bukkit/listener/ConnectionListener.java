@@ -2,6 +2,7 @@ package io.github.no1qq.uagc.bukkit.listener;
 
 import io.github.no1qq.uagc.bukkit.UagcRuntime;
 import io.github.no1qq.uagc.bukkit.sample.PlayerSampler;
+import io.github.no1qq.uagc.engine.alert.AlertService;
 import io.github.no1qq.uagc.engine.evidence.EvidenceEntry;
 import io.github.no1qq.uagc.engine.evidence.EvidenceType;
 import io.github.no1qq.uagc.engine.exemption.ExemptionType;
@@ -28,8 +29,7 @@ public final class ConnectionListener implements Listener {
         data.setLastSafePosition(PlayerSampler.toVec(player.getLocation()));
         data.exemptions().grant(ExemptionType.JOIN);
         data.latency().record(Math.max(0, player.getPing()));
-        data.alertSettings().setEnabled(runtime.config().alerts().enabledByDefaultForStaff()
-                && player.hasPermission("uagc.alerts.view"));
+        runtime.alerts().applyTo(data, player.hasPermission(AlertService.PERMISSION_VIEW));
         data.recordEvidence(EvidenceEntry.of(EvidenceType.LIFECYCLE, "player joined")
                 .with("world", player.getWorld().getName()));
 

@@ -1,5 +1,6 @@
 package io.github.no1qq.uagc.bukkit;
 
+import io.github.no1qq.uagc.bukkit.alert.YamlAlertPreferenceStore;
 import io.github.no1qq.uagc.bukkit.debug.DebugService;
 import io.github.no1qq.uagc.bukkit.freeze.YamlFreezeStore;
 import io.github.no1qq.uagc.bukkit.platform.BukkitEnforcementGateway;
@@ -51,7 +52,8 @@ public final class UagcRuntime {
 
         this.players = new PlayerDataManager(server, initialConfig.playerData(), registry.size());
         this.confidence = new ConfidenceModel(initialConfig.confidence());
-        this.alerts = new AlertService(players, server, messages, initialConfig.alerts());
+        this.alerts = new AlertService(players, server, messages, initialConfig.alerts(),
+                new YamlAlertPreferenceStore(new File(plugin.getDataFolder(), "alert-preferences.yml"), logger));
 
         YamlFreezeStore store = new YamlFreezeStore(new File(plugin.getDataFolder(), "freezes.yml"), logger);
         this.enforcement = new BukkitEnforcementGateway(plugin, initialConfig.punishments(), plugin::refreshFreezeState);

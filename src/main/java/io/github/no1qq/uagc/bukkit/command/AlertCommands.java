@@ -52,6 +52,10 @@ final class AlertCommands {
     }
 
     private static int toggle(CommandSourceStack source, UagcRuntime runtime, Boolean desired) {
+        if (!(source.getSender() instanceof Player player)) {
+            CommandSupport.error(source, "alert settings are per player and cannot be used from the console");
+            return Command.SINGLE_SUCCESS;
+        }
         AlertSettings settings = settings(source, runtime);
         if (settings == null) {
             return Command.SINGLE_SUCCESS;
@@ -63,6 +67,7 @@ final class AlertCommands {
             settings.setEnabled(desired);
             enabled = desired;
         }
+        runtime.alerts().remember(player.getUniqueId(), enabled);
         CommandSupport.send(source, "alerts are now "
                 + (enabled ? "<green>enabled</green>" : "<gray>disabled</gray>"));
         return Command.SINGLE_SUCCESS;

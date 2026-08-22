@@ -59,7 +59,7 @@ which is not recommended.
 | Key | Default | Meaning |
 | --- | --- | --- |
 | `enabled` | `true` | master switch for staff alerts |
-| `enabled-by-default-for-staff` | `true` | alerts start on for players holding the permission |
+| `enabled-by-default-for-staff` | `true` | alerts start on for players holding the permission, until that player chooses otherwise with `/uagc alerts on/off`, which is remembered in `alert-preferences.yml` |
 | `format` | see file | MiniMessage template for the alert line |
 | `hover-format` | see file | MiniMessage template shown on hover |
 | `click-command` | `/uagc profile <player>` | command suggested when the alert is clicked |
