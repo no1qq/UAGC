@@ -56,34 +56,34 @@ concept of staff groups. LuckPerms or any other permission plugin decides who is
 
 ```
 uagc.admin                     everything below
-├── uagc.command               access to /uagc, parent of every subcommand node
-│   ├── uagc.command.status
-│   ├── uagc.command.checks
-│   ├── uagc.command.info
-│   ├── uagc.command.profile
-│   ├── uagc.command.violations
-│   ├── uagc.command.evidence
-│   ├── uagc.command.exemptions
-│   ├── uagc.command.alerts
-│   ├── uagc.command.debug
-│   ├── uagc.command.freeze
-│   ├── uagc.command.unfreeze
-│   ├── uagc.command.bypass
-│   ├── uagc.command.punish
-│   ├── uagc.command.kick
-│   ├── uagc.command.ban
-│   ├── uagc.command.unban
-│   └── uagc.command.reload
-├── uagc.alerts
-│   └── uagc.alerts.view       receives detection alerts
-└── uagc.bypass                parent only, grants nothing on its own
-    ├── uagc.bypass.all
-    ├── uagc.bypass.movement
-    ├── uagc.bypass.combat
-    ├── uagc.bypass.interaction
-    ├── uagc.bypass.inventory
-    ├── uagc.bypass.protocol
-    └── uagc.bypass.(check)    one node per registered check
+|-- uagc.command               access to /uagc, parent of every subcommand node
+|   |-- uagc.command.status
+|   |-- uagc.command.checks
+|   |-- uagc.command.info
+|   |-- uagc.command.profile
+|   |-- uagc.command.violations
+|   |-- uagc.command.evidence
+|   |-- uagc.command.exemptions
+|   |-- uagc.command.alerts
+|   |-- uagc.command.debug
+|   |-- uagc.command.freeze
+|   |-- uagc.command.unfreeze
+|   |-- uagc.command.bypass
+|   |-- uagc.command.punish
+|   |-- uagc.command.kick
+|   |-- uagc.command.ban
+|   |-- uagc.command.unban
+|   +-- uagc.command.reload
+|-- uagc.alerts
+|   +-- uagc.alerts.view       receives detection alerts
++-- uagc.bypass                parent only, grants nothing on its own
+    |-- uagc.bypass.all
+    |-- uagc.bypass.movement
+    |-- uagc.bypass.combat
+    |-- uagc.bypass.interaction
+    |-- uagc.bypass.inventory
+    |-- uagc.bypass.protocol
+    +-- uagc.bypass.(check)    one node per registered check
 
 uagc.freeze.immune             cannot be frozen
 uagc.punish.immune             cannot be punished by staff commands

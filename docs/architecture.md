@@ -6,9 +6,9 @@ UAGC is divided into two halves that never blur into each other.
 
 ```
 io.github.no1qq.uagc
-├── api        public, versioned surface other plugins compile against
-├── engine     the anti cheat itself, with no Bukkit imports at all
-└── bukkit     the Paper adapter, listeners, commands and samplers
+|-- api        public, versioned surface other plugins compile against
+|-- engine     the anti cheat itself, with no Bukkit imports at all
++-- bukkit     the Paper adapter, listeners, commands and samplers
 ```
 
 `engine` does not import a single Bukkit class. Everything it needs about the world arrives as plain
