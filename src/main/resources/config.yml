@@ -299,3 +299,35 @@ checks:
       alert-threshold: 2.0
       options:
         severity: 0.8
+
+  inventory:
+    inventory_move:
+      enabled: true
+      violation-increment: 2.0
+      decay-per-tick: 0.01
+      max-violation-level: 200.0
+      minimum-confidence: 0.45
+      alert-threshold: 2.0
+      options:
+        maximum-speed: 0.08
+        sample-ticks: 3
+        required-clicks: 4
+        minimum-span-ticks: 8.0
+        session-gap-ticks: 20.0
+        severity-scale: 1.5
+
+    silent_switch:
+      enabled: true
+      violation-increment: 2.0
+      decay-per-tick: 0.01
+      max-violation-level: 200.0
+      minimum-confidence: 0.5
+      alert-threshold: 2.0
+      options:
+        maximum-return-ticks: 2.0
+        action-window-ticks: 3.0
+        window-ticks: 200.0
+        required-samples: 4
+        required-same-tick-samples: 2
+        same-tick-severity: 0.9
+        severity-scale: 4.0

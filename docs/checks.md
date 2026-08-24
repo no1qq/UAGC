@@ -322,6 +322,61 @@ placement.
 | --- | --- | --- |
 | `severity` | 0.8 | severity assigned to the detection |
 
+## Inventory
+
+### inventory_move
+
+An open inventory screen releases every movement key. The client stops polling input entirely, so a
+player who opens a chest at a sprint coasts to a stop and stays there until they close it. InventoryMove
+keeps feeding input while the screen is up, which is how a cheat sorts loot mid chase.
+
+The signal is the click, because that is the only thing the server hears when a player opens their own
+inventory. Opening a container fires an event, opening the survival inventory with the E key sends
+nothing at all until the first click lands.
+
+Momentum is the whole difficulty. A click one tick after opening the screen at a sprint proves nothing,
+so a single burst is never enough: the check needs `required-clicks` clicks whose first and last are at
+least `minimum-span-ticks` apart, with the movement over the sampled ticks staying above
+`maximum-speed` the entire time. Ordinary friction has taken a player from sprint speed to nothing well
+inside that span. Slippery surfaces, liquid, climbables, webs, slime, honey, vehicles, gliding, recent
+server velocity and nearby pushers all end the session rather than counting toward it, because each of
+them can move a player who is not touching a key.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `maximum-speed` | 0.08 | per tick speed a coasting player is past by the time the span is met |
+| `sample-ticks` | 3 | contiguous movement ticks averaged at each click |
+| `required-clicks` | 4 | clicks while moving before flagging |
+| `minimum-span-ticks` | 8.0 | ticks the first and last click must be apart |
+| `session-gap-ticks` | 20.0 | quiet ticks that end the session |
+| `severity-scale` | 1.5 | proportional excess mapping to full severity |
+
+### silent_switch
+
+Silent switch modules change the held hotbar slot, act with the item, and change straight back, without
+ever drawing the swap on the client. What reaches the server is still a slot change, and vanilla has two
+properties that make it visible.
+
+The first is a hard limit. The vanilla client syncs the selected slot once per client tick, in
+`MultiPlayerGameMode.tick`. Two slot changes inside one server tick cannot come from it at all, so that
+pattern alone is judged after `required-same-tick-samples` of them.
+
+The second is a shape. Swapping to a slot, acting with it, and returning within `maximum-return-ticks`
+is possible for a human but not repeatedly and not to the tick, so `required-samples` round trips inside
+`window-ticks` are needed. The action has to be real: a place, a break, an interact or an attack inside
+`action-window-ticks` of the swap. Flicking between two slots with nothing happening in between is just
+someone playing with the mouse wheel and is never counted.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `maximum-return-ticks` | 2.0 | ticks within which a return counts as one round trip |
+| `action-window-ticks` | 3.0 | ticks around the swap an action has to fall in |
+| `window-ticks` | 200.0 | ticks the samples are collected over |
+| `required-samples` | 4 | round trips before flagging |
+| `required-same-tick-samples` | 2 | same tick swaps before flagging, which vanilla cannot do at all |
+| `same-tick-severity` | 0.9 | severity used when a same tick swap was seen |
+| `severity-scale` | 4.0 | samples past the requirement that map to full severity |
+
 ## Protocol
 
 ### invalid_position

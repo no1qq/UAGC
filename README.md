@@ -51,6 +51,7 @@ To run only the test suite:
 | Movement checks | vertical motion, horizontal speed, sprint direction, ground spoof, no fall, no slow, no web, timer |
 | Combat checks | reach, attack rhythm, velocity, knockback delay |
 | Interaction checks | fast break, block reach, invalid placement |
+| Inventory checks | inventory move, silent switch |
 | Protocol checks | invalid position |
 
 Every check listed above performs real analysis. There are no placeholder checks.

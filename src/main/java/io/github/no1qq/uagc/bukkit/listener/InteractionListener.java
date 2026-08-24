@@ -92,6 +92,14 @@ public final class InteractionListener implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onInteract(org.bukkit.event.player.PlayerInteractEvent event) {
+        PlayerData data = runtime.players().get(event.getPlayer().getUniqueId());
+        if (data != null) {
+            data.interaction().recordInteract(runtime.server().currentTick());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlace(BlockPlaceEvent event) {
         Player player = event.getPlayer();
         PlayerData data = runtime.players().get(player.getUniqueId());
