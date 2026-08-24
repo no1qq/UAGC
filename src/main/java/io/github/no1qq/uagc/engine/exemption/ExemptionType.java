@@ -15,6 +15,7 @@ public enum ExemptionType {
     PORTAL(60, CheckCategory.MOVEMENT),
     CHUNK_LOAD(10, CheckCategory.MOVEMENT),
     SETBACK(6, CheckCategory.MOVEMENT),
+    SERVER_CORRECTION(2, CheckCategory.MOVEMENT),
     VELOCITY(8, CheckCategory.MOVEMENT),
     KNOCKBACK(8, CheckCategory.MOVEMENT),
     EXPLOSION(20, CheckCategory.MOVEMENT),

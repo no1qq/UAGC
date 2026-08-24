@@ -15,7 +15,7 @@ player-data:
   evidence-violation-capacity: 48
   alerts-enabled-by-default: true
   default-alert-confidence: 0.35
-  default-alert-violation-level: 1.0
+  default-alert-violation-level: 0.0
 
 confidence:
   ping-comfortable-millis: 120
@@ -34,9 +34,11 @@ alerts:
   hover-format: "<gray><summary></gray>"
   click-command: "/uagc profile <player>"
   default-minimum-confidence: 0.35
-  default-minimum-violation-level: 1.0
-  cooldown-ticks: 20
+  default-minimum-violation-level: 0.0
+  cooldown-ticks: 4
   send-to-console: true
+  flag-on-alert: false
+  flag-setback-interval-ticks: 10
 
 freeze:
   block-movement: true
@@ -88,7 +90,7 @@ checks:
       decay-per-tick: 0.02
       max-violation-level: 200.0
       minimum-confidence: 0.35
-      alert-threshold: 3.0
+      alert-threshold: 2.0
       setback-enabled: true
       setback-threshold: 6.0
       options:
@@ -103,7 +105,7 @@ checks:
       decay-per-tick: 0.02
       max-violation-level: 200.0
       minimum-confidence: 0.35
-      alert-threshold: 4.0
+      alert-threshold: 2.0
       setback-enabled: true
       setback-threshold: 8.0
       options:
@@ -118,7 +120,7 @@ checks:
       decay-per-tick: 0.02
       max-violation-level: 200.0
       minimum-confidence: 0.4
-      alert-threshold: 4.0
+      alert-threshold: 3.0
       options:
         maximum-offset-degrees: 60.0
         maximum-turn-degrees: 40.0
@@ -134,7 +136,7 @@ checks:
       decay-per-tick: 0.02
       max-violation-level: 200.0
       minimum-confidence: 0.4
-      alert-threshold: 4.0
+      alert-threshold: 3.0
       options:
         minimum-distance: 0.6
         required-streak: 4
@@ -146,7 +148,7 @@ checks:
       decay-per-tick: 0.02
       max-violation-level: 200.0
       minimum-confidence: 0.4
-      alert-threshold: 3.0
+      alert-threshold: 2.0
       options:
         minimum-drop: 4.0
         reported-ratio: 0.5
@@ -159,7 +161,7 @@ checks:
       decay-per-tick: 0.02
       max-violation-level: 200.0
       minimum-confidence: 0.4
-      alert-threshold: 4.0
+      alert-threshold: 2.0
       options:
         use-item-multiplier: 0.2
         relative-tolerance: 0.05
@@ -181,7 +183,7 @@ checks:
       decay-per-tick: 0.02
       max-violation-level: 200.0
       minimum-confidence: 0.4
-      alert-threshold: 4.0
+      alert-threshold: 2.0
       options:
         web-multiplier: 0.25
         relative-tolerance: 0.05
@@ -200,7 +202,7 @@ checks:
       decay-per-tick: 0.01
       max-violation-level: 200.0
       minimum-confidence: 0.4
-      alert-threshold: 4.0
+      alert-threshold: 3.0
       options:
         clock-drift-millis: 120.0
         maximum-latency-credit-millis: 1000.0
@@ -213,7 +215,7 @@ checks:
       decay-per-tick: 0.02
       max-violation-level: 200.0
       minimum-confidence: 0.4
-      alert-threshold: 4.0
+      alert-threshold: 3.0
       options:
         tolerance: 0.06
         latency-tolerance: 0.03
@@ -284,7 +286,7 @@ checks:
       decay-per-tick: 0.02
       max-violation-level: 200.0
       minimum-confidence: 0.45
-      alert-threshold: 4.0
+      alert-threshold: 3.0
       options:
         tolerance: 0.1
         latency-tolerance: 0.04

@@ -62,6 +62,10 @@ config file until it is used again. `verbose` and `mute` remain player only and 
 | `/uagc tempban (player) (duration) [reason]` | `uagc.command.ban` | temporary ban |
 | `/uagc unban (name)` | `uagc.command.unban` | pardon a ban |
 | `/uagc punish (player) (action) [value]` | `uagc.command.punish` | apply any punishment action directly |
+| `/uagc settings` | `uagc.command.settings` | open the settings panel, every value is clickable and writes straight to `config.yml` |
+| `/uagc settings checks [category]` | `uagc.command.settings` | list checks, click one to open its own panel |
+| `/uagc settings check (check)` | `uagc.command.settings` | thresholds and every option of one check |
+| `/uagc settings set (path) (value)` | `uagc.command.settings` | set one `config.yml` path, save and reload |
 | `/uagc reload` | `uagc.command.reload` | reload configuration and refresh permission caches |
 
 Manual punishments run through the same `PunishmentService` as automatic ones. They receive the same
@@ -92,6 +96,7 @@ uagc.admin                     everything below
 |   |-- uagc.command.ban
 |   |-- uagc.command.unban
 |   +-- uagc.command.reload
+|   +-- uagc.command.settings
 |-- uagc.alerts
 |   +-- uagc.alerts.view       receives detection alerts
 +-- uagc.bypass                parent only, grants nothing on its own
@@ -150,6 +155,7 @@ uagc.command.bypass
 ```
 uagc.command.debug
 uagc.command.reload
+uagc.command.settings
 uagc.bypass.movement
 ```
 
@@ -234,3 +240,25 @@ survives even after they are released.
 
 Players holding `uagc.freeze.immune` cannot be frozen, and players holding `uagc.punish.immune` cannot
 be punished by staff commands.
+
+## The settings panel
+
+`/uagc settings` renders the live configuration as a clickable panel. Toggles show `[toggle]`, numbers
+show `[-]` and `[+]` stepped by a size that suits their scale, and hovering any of them shows the
+`config.yml` path being changed. Clicking one runs `/uagc settings set <path> <value>`, which writes the
+value to `config.yml`, saves it, and reloads the runtime the same way `/uagc reload` does. Nothing is
+kept in memory only, so a restart keeps whatever was set.
+
+`set` refuses a path that does not already exist in `config.yml` and refuses a value of the wrong shape,
+so a typo cannot invent a key or turn a number into a word. Integers stay integers. Every change is
+logged to the console with the name of whoever made it.
+
+`/uagc settings checks` lists every registered check with its state and alert threshold, and each one
+opens its own panel with the shared thresholds first and then every option the check reads, including
+the ones documented in [Checks](checks.md).
+
+The one setting worth calling out is `alerts.flag-on-alert`. With it on, any movement category alert
+also sets the player back to their last safe position, so the player who triggered it visibly stutters
+at the moment staff are told rather than carrying on untouched. `alerts.flag-setback-interval-ticks`
+keeps that from turning into a rubber band loop. Checks that already request their own setback, like
+`horizontal_speed`, are unaffected and keep using their own threshold.

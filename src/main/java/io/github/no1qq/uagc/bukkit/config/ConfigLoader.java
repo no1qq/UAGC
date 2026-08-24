@@ -99,7 +99,9 @@ public final class ConfigLoader {
                 section.getDouble("default-minimum-confidence", defaults.defaultMinimumConfidence()),
                 section.getDouble("default-minimum-violation-level", defaults.defaultMinimumViolationLevel()),
                 section.getInt("cooldown-ticks", defaults.cooldownTicks()),
-                section.getBoolean("send-to-console", defaults.sendToConsole()));
+                section.getBoolean("send-to-console", defaults.sendToConsole()),
+                section.getBoolean("flag-on-alert", defaults.flagOnAlert()),
+                section.getInt("flag-setback-interval-ticks", defaults.flagSetbackIntervalTicks()));
     }
 
     private static FreezeConfig loadFreeze(ConfigurationSection section) {

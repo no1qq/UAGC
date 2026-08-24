@@ -25,6 +25,8 @@ public final class HelpText {
             "<gray>  /uagc ban (player) [reason]</gray>",
             "<gray>  /uagc tempban (player) (duration) [reason]</gray>",
             "<gray>  /uagc unban (name)</gray>",
+            "<gray>  /uagc settings <dark_gray>panel that edits config.yml in game</dark_gray></gray>",
+            "<gray>  /uagc settings check (check)</gray>",
             "<gray>  /uagc reload</gray>"
     };
 

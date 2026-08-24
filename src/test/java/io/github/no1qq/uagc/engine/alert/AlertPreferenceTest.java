@@ -69,7 +69,7 @@ class AlertPreferenceTest {
 
     @Test
     void turningAlertsBackOnSurvivesRejoining() {
-        AlertConfig offByDefault = new AlertConfig(true, false, "", "", "", 0.0D, 0.0D, 20, false);
+        AlertConfig offByDefault = new AlertConfig(true, false, "", "", "", 0.0D, 0.0D, 20, false, false, 10);
         AlertService service = new AlertService(harness.players(), harness.server(), harness.messages(),
                 offByDefault, store);
         service.remember(staff.uuid(), true);

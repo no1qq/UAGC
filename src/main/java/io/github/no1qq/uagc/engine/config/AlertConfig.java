@@ -9,13 +9,15 @@ public record AlertConfig(
         double defaultMinimumConfidence,
         double defaultMinimumViolationLevel,
         int cooldownTicks,
-        boolean sendToConsole) {
+        boolean sendToConsole,
+        boolean flagOnAlert,
+        int flagSetbackIntervalTicks) {
 
     public static AlertConfig defaults() {
         return new AlertConfig(true, true,
                 "<gray>[<gold>UAGC</gold>]</gray> <white><player></white> failed <aqua><check></aqua> <gray>(vl <yellow><vl></yellow>, <yellow><confidence></yellow>)</gray>",
                 "<gray><summary></gray>",
                 "/uagc profile <player>",
-                0.35D, 1.0D, 20, true);
+                0.35D, 1.0D, 4, true, false, 10);
     }
 }

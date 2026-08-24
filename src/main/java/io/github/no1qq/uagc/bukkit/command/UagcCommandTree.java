@@ -71,6 +71,7 @@ public final class UagcCommandTree {
                                 toggleCheck(context.getSource(), runtime,
                                         StringArgumentType.getString(context, "check"), false)))));
 
+        SettingsCommands.register(root, plugin, runtime);
         InspectionCommands.register(root, runtime);
         ModerationCommands.register(root, runtime);
 

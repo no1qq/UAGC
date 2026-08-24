@@ -221,15 +221,27 @@ public final class CheckEngine {
         }
 
         double punishThreshold = punishments.punishThresholdFor(definition.id(), definition.category());
-        if (level >= checkConfig.alertThreshold()) {
+        boolean alerted = level >= checkConfig.alertThreshold();
+        if (alerted) {
             alerts.dispatch(violation, punishThreshold, false);
         }
 
         if (result.requestSetback() && checkConfig.setbackEnabled() && level >= checkConfig.setbackThreshold()) {
             applySetback(player, violation);
+        } else if (alerted && shouldFlagOnAlert(definition, player, tick, current)) {
+            applySetback(player, violation);
         }
 
         punishments.evaluate(player, violation, tracker.flagCount());
+    }
+
+    private boolean shouldFlagOnAlert(CheckDefinition definition, PlayerData player, long tick, UagcConfig current) {
+        if (!current.alerts().flagOnAlert() || definition.category() != CheckCategory.MOVEMENT) {
+            return false;
+        }
+        long interval = current.alerts().flagSetbackIntervalTicks();
+        long last = player.lastSetbackTick();
+        return last == Long.MIN_VALUE || tick - last >= interval;
     }
 
     private void applySetback(PlayerData player, Violation violation) {

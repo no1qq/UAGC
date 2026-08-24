@@ -43,10 +43,13 @@ public final class StateListener implements Listener {
         ExemptionType type = switch (event.getCause()) {
             case NETHER_PORTAL, END_PORTAL, END_GATEWAY -> ExemptionType.PORTAL;
             case PLUGIN, COMMAND, SPECTATE -> ExemptionType.PLUGIN_TELEPORT;
+            case UNKNOWN -> ExemptionType.SERVER_CORRECTION;
             default -> ExemptionType.TELEPORT;
         };
         data.exemptions().grant(type, 0, "server", event.getCause().name());
-        data.exemptions().grant(ExemptionType.TELEPORT);
+        if (type != ExemptionType.SERVER_CORRECTION) {
+            data.exemptions().grant(ExemptionType.TELEPORT);
+        }
         data.movement().breakContinuity();
         if (event.getTo() != null) {
             data.setLastSafePosition(PlayerSampler.toVec(event.getTo()));

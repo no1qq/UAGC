@@ -36,6 +36,7 @@ permissions:
       uagc.command.unban: true
       uagc.command.debug: true
       uagc.command.reload: true
+      uagc.command.settings: true
   uagc.command.help:
     default: op
   uagc.command.status:
@@ -71,6 +72,9 @@ permissions:
   uagc.command.debug:
     default: op
   uagc.command.reload:
+    default: op
+  uagc.command.settings:
+    description: Opens the in game settings panel and writes config.yml
     default: op
   uagc.alerts:
     description: Grants alert related permissions

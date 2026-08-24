@@ -64,9 +64,11 @@ which is not recommended.
 | `hover-format` | see file | MiniMessage template shown on hover |
 | `click-command` | `/uagc profile <player>` | command suggested when the alert is clicked |
 | `default-minimum-confidence` | `0.35` | confidence floor for a new staff member |
-| `default-minimum-violation-level` | `1.0` | violation floor for a new staff member |
-| `cooldown-ticks` | `20` | minimum gap between alerts for the same player and check |
+| `default-minimum-violation-level` | `0.0` | violation floor for a new staff member, `0` leaves the timing to each check own alert threshold |
+| `cooldown-ticks` | `4` | minimum gap between alerts for the same player and check |
 | `send-to-console` | `true` | mirror alerts to the console, toggleable live with `/uagc alerts` run from the console, which then overrides this until toggled back |
+| `flag-on-alert` | `false` | set a movement category alert back to the last safe position, so a cheating player visibly stutters the moment staff are told |
+| `flag-setback-interval-ticks` | `10` | shortest gap between two of those setbacks |
 
 Placeholders available in `format` and `hover-format`: `<player>`, `<uuid>`, `<check>`, `<check_id>`,
 `<category>`, `<vl>`, `<confidence>`, `<severity>`, `<ping>`, `<tps>`, `<summary>`, `<repeat>`.
