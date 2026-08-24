@@ -14,19 +14,23 @@ public final class NoWebCheck implements Check<MovementEvent, NoWebCheck.State> 
 
     private static final CheckDefinition DEFINITION = CheckDefinition
             .builder("no_web", "NoWeb", CheckCategory.MOVEMENT)
-            .description("a cobweb clamps horizontal motion to a quarter of it every tick")
+            .description("a cobweb clamps horizontal motion to a quarter of it and vertical motion to a twentieth")
             .latencySensitive()
             .tickSensitive()
             .build();
 
     public static final class State {
         final RestrictedSpeedModel.Envelope envelope = new RestrictedSpeedModel.Envelope();
-        int consecutive;
+        int horizontalExcess;
+        int verticalExcess;
+        double worstDescent;
         long enteredTick = Long.MIN_VALUE;
 
         void reset() {
             envelope.reset();
-            consecutive = 0;
+            horizontalExcess = 0;
+            verticalExcess = 0;
+            worstDescent = 0.0D;
             enteredTick = Long.MIN_VALUE;
         }
     }
@@ -69,14 +73,21 @@ public final class NoWebCheck implements Check<MovementEvent, NoWebCheck.State> 
         if (state.enteredTick == Long.MIN_VALUE) {
             state.enteredTick = event.tick();
         }
-        long settleTicks = (long) context.config().option("settle-ticks", 3.0D);
-        if (event.tick() - state.enteredTick < settleTicks) {
-            return CheckResult.passed();
-        }
+        long ticksInWeb = event.tick() - state.enteredTick;
 
         long velocityGrace = (long) context.config().option("velocity-grace-ticks", 20.0D);
         if (player.velocity().appliedWithin(event.tick(), velocityGrace)) {
             state.reset();
+            return CheckResult.passed();
+        }
+
+        CheckResult descent = inspectDescent(context, state, snapshot, ticksInWeb);
+        if (descent != null) {
+            return descent;
+        }
+
+        long settleTicks = (long) context.config().option("settle-ticks", 3.0D);
+        if (ticksInWeb < settleTicks) {
             return CheckResult.passed();
         }
 
@@ -98,13 +109,12 @@ public final class NoWebCheck implements Check<MovementEvent, NoWebCheck.State> 
         }
 
         if (actual <= limit) {
-            state.consecutive = 0;
             return CheckResult.passed();
         }
 
-        state.consecutive++;
-        int requiredStreak = context.config().optionInt("required-streak", 3);
-        if (state.consecutive < requiredStreak) {
+        state.horizontalExcess++;
+        int requiredTicks = context.config().optionInt("required-streak", 3);
+        if (state.horizontalExcess < requiredTicks) {
             return CheckResult.passed();
         }
         if (context.support().hasNearbyPusher(player.uuid())) {
@@ -112,13 +122,57 @@ public final class NoWebCheck implements Check<MovementEvent, NoWebCheck.State> 
             return CheckResult.passed();
         }
 
+        state.horizontalExcess = 0;
         double severity = ConfidenceModel.severityRatio(actual, limit,
                 context.config().option("severity-scale", 0.3D));
         return CheckResult.flag(severity, "moved through a cobweb faster than it permits")
                 .with("actual", actual)
                 .with("allowed", limit)
                 .with("multiplier", multiplier)
-                .with("streak", state.consecutive)
+                .with("ticks_in_web", ticksInWeb)
+                .build();
+    }
+
+    private CheckResult inspectDescent(CheckContext context, State state, MovementSnapshot snapshot, long ticksInWeb) {
+        long settleTicks = (long) context.config().option("vertical-settle-ticks", 1.0D);
+        if (ticksInWeb < settleTicks) {
+            return null;
+        }
+
+        double descent = -snapshot.verticalDelta();
+        double maximum = context.config().option("maximum-descent", 0.03D)
+                + MovementApplicability.latencyTolerance(context.player(), 0.002D);
+        if (descent <= maximum) {
+            return null;
+        }
+
+        state.verticalExcess++;
+        state.worstDescent = Math.max(state.worstDescent, descent);
+
+        if (context.isDebugWatched()) {
+            double reported = descent;
+            context.debug(() -> "no web descent=" + reported + " maximum=" + maximum
+                    + " ticks=" + state.verticalExcess);
+        }
+
+        int requiredTicks = context.config().optionInt("vertical-required-ticks", 2);
+        if (state.verticalExcess < requiredTicks) {
+            return null;
+        }
+        if (context.support().hasNearbyPusher(context.player().uuid())) {
+            state.reset();
+            return null;
+        }
+
+        double worst = state.worstDescent;
+        state.verticalExcess = 0;
+        state.worstDescent = 0.0D;
+        double severity = ConfidenceModel.severityRatio(worst, maximum,
+                context.config().option("vertical-severity-scale", 1.5D));
+        return CheckResult.flag(severity, "fell through a cobweb faster than it permits")
+                .with("descent", worst)
+                .with("allowed", maximum)
+                .with("ticks_in_web", ticksInWeb)
                 .build();
     }
 }

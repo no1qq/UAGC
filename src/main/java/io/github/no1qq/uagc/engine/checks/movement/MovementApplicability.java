@@ -22,6 +22,26 @@ public final class MovementApplicability {
                 || snapshot.effects().hasLevitation();
     }
 
+    public static boolean hasAlternateGroundClaim(MovementSnapshot snapshot) {
+        ActivitySample activity = snapshot.activity();
+        SurfaceSample surface = snapshot.surface();
+        return activity.hasAlternateMovement()
+                || activity.allowFlight()
+                || activity.gameMode().allowsFlight()
+                || surface.onClimbable()
+                || surface.onScaffolding()
+                || surface.onSlime()
+                || surface.onHoney()
+                || surface.onBed()
+                || surface.inPowderSnow()
+                || surface.inBerryBush()
+                || surface.inBubbleColumn()
+                || surface.inLiquid()
+                || surface.insideSolid()
+                || !surface.chunkLoaded()
+                || snapshot.effects().hasLevitation();
+    }
+
     public static boolean hasAlternateHorizontalPhysics(MovementSnapshot snapshot) {
         ActivitySample activity = snapshot.activity();
         SurfaceSample surface = snapshot.surface();

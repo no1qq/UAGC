@@ -22,7 +22,7 @@ public final class RestrictedSpeedModel {
     public static double allowedThisTick(Envelope envelope, MovementSnapshot snapshot, double multiplier) {
         SurfaceSample surface = snapshot.surface();
         double friction = surface.friction() > 0.0D ? surface.friction() : SurfaceSample.DEFAULT_FRICTION;
-        double restricted = MovementPredictor.effectiveMovementSpeed(snapshot.attributes(), snapshot.activity())
+        double restricted = MovementPredictor.sprintCapableMovementSpeed(snapshot.attributes(), snapshot.activity())
                 * multiplier;
         double terminal = MovementPredictor.terminalGroundSpeed(restricted, friction);
         double actual = snapshot.horizontalDistance();

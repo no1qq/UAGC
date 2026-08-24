@@ -67,6 +67,11 @@ public final class MovementPredictor {
         return Math.max(sprintAdjusted, walkDerived);
     }
 
+    public static double sprintCapableMovementSpeed(AttributeSample attributes, ActivitySample activity) {
+        double speed = effectiveMovementSpeed(attributes, activity);
+        return activity.sprinting() ? speed : speed * SPRINT_MULTIPLIER;
+    }
+
     public static double flightSpeedBound(AttributeSample attributes) {
         double flySpeed = attributes.flySpeed() > 0.0D ? attributes.flySpeed() : AttributeSample.VANILLA_FLY_SPEED;
         return flySpeed * 11.0D;

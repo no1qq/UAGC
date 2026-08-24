@@ -49,7 +49,7 @@ public final class GroundSpoofCheck implements Check<MovementEvent, GroundSpoofC
         MovementSnapshot snapshot = event.snapshot();
         PlayerData player = context.player();
 
-        if (MovementApplicability.hasAlternateVerticalPhysics(snapshot)
+        if (MovementApplicability.hasAlternateGroundClaim(snapshot)
                 || !MovementApplicability.isMeasurable(player, snapshot)) {
             state.reset();
             return CheckResult.passed();

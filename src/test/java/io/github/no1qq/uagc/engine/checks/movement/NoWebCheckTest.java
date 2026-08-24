@@ -83,6 +83,42 @@ class NoWebCheckTest {
         assertFalse(harness.flagged(), "running into a web bleeds speed over a few ticks first");
     }
 
+    private void fall(MovementCheckHarness<NoWebCheck.State> harness, double perTick, int ticks) {
+        Vec3 position = new Vec3(0.0D, 80.0D, 0.0D);
+        for (int tick = 1; tick <= ticks; tick++) {
+            Vec3 next = new Vec3(position.x(), position.y() - perTick, position.z());
+            harness.feed(SnapshotBuilder.create()
+                    .tick(tick)
+                    .from(position)
+                    .to(next)
+                    .clientOnGround(false)
+                    .surface(Surfaces.cobwebInAir(20.0D))
+                    .build());
+            position = next;
+        }
+    }
+
+    @Test
+    void fallingThroughAWebIsFlagged() {
+        MovementCheckHarness<NoWebCheck.State> harness = harness();
+        fall(harness, 0.35D, 4);
+        assertTrue(harness.flagged(), "a cobweb clamps vertical motion to a twentieth, nobody falls through one");
+    }
+
+    @Test
+    void sinkingThroughAWebAtTheClampedRateIsNeverFlagged() {
+        MovementCheckHarness<NoWebCheck.State> harness = harness();
+        fall(harness, 0.004D, 60);
+        assertFalse(harness.flagged(), "the vanilla crawl down a web is a few thousandths of a block a tick");
+    }
+
+    @Test
+    void theFirstTickOfContactIsNeverJudged() {
+        MovementCheckHarness<NoWebCheck.State> harness = harness();
+        fall(harness, 0.78D, 1);
+        assertFalse(harness.flagged(), "the tick a falling player touches the web was computed outside it");
+    }
+
     @Test
     void knockbackIntoAWebIsNeverFlagged() {
         MovementCheckHarness<NoWebCheck.State> harness = harness();

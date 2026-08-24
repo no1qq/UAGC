@@ -61,11 +61,7 @@ public final class HorizontalSpeedCheck implements Check<MovementEvent, Horizont
 
         SurfaceSample surface = snapshot.surface();
         double friction = surface.friction() > 0.0D ? surface.friction() : SurfaceSample.DEFAULT_FRICTION;
-        double movementSpeed = MovementPredictor.effectiveMovementSpeed(snapshot.attributes(), snapshot.activity());
-        long sprintResetTicks = (long) context.config().option("sprint-reset-ticks", 3.0D);
-        if (!snapshot.activity().sprinting() && player.combat().isInCombat(event.tick(), sprintResetTicks)) {
-            movementSpeed *= MovementPredictor.SPRINT_MULTIPLIER;
-        }
+        double movementSpeed = MovementPredictor.sprintCapableMovementSpeed(snapshot.attributes(), snapshot.activity());
         double terminal = MovementPredictor.terminalGroundSpeed(movementSpeed, friction);
         double actual = snapshot.horizontalDistance();
 
@@ -79,10 +75,10 @@ public final class HorizontalSpeedCheck implements Check<MovementEvent, Horizont
         double momentum = onGround ? MovementPredictor.groundMomentum(friction) : MovementPredictor.AIR_MOMENTUM;
         double acceleration = onGround
                 ? MovementPredictor.groundAcceleration(movementSpeed, friction)
-                : MovementPredictor.airAcceleration(movementSpeed, snapshot.activity().sprinting());
+                : MovementPredictor.airAcceleration(movementSpeed, true);
 
         double envelope = state.envelope * momentum + acceleration;
-        if (player.velocity().jumpedWithin(event.tick(), 1L) && snapshot.activity().sprinting()) {
+        if (player.velocity().jumpedWithin(event.tick(), 1L)) {
             envelope += MovementPredictor.SPRINT_JUMP_BOOST;
         }
         double allowed = Math.max(envelope, terminal);

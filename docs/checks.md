@@ -65,12 +65,14 @@ speed attribute and vehicles all pass, while a sustained 0.75 blocks per tick is
 | `absolute-tolerance` | 0.005 | absolute slack on the envelope |
 | `required-streak` | 2 | consecutive excesses before flagging |
 | `severity-scale` | 0.35 | proportional excess mapping to full severity |
-| `sprint-reset-ticks` | 3.0 | ticks after an attack where the sprint envelope is still allowed |
 
-Landing a hit clears the server side sprint flag while the client is still carrying sprint momentum for
-another tick or two. For `sprint-reset-ticks` after an attack the sprint multiplier is kept in the
-envelope, which is why a vanilla hit no longer produces a speed flag. It grants nothing a sprinting
-player could not already do.
+The envelope always assumes the player is sprint capable, whatever the server side sprint flag says.
+Landing a hit on any entity clears that flag server side and the vanilla client never sends a new
+sprint packet, because as far as it is concerned it never stopped sprinting. The server therefore
+believes a sprinting player is walking, for as long as they keep holding the key. Bounding them to
+walking speed for that whole time is what used to turn punching a cow into a HorizontalSpeed
+violation. Sprinting is legitimate at any moment anyway, so allowing it costs the check nothing real,
+and the same reasoning applies to the sprint jump boost, which is now allowed on any jump.
 
 ### sprint_direction
 
@@ -125,6 +127,11 @@ client that repeatedly reports standing on ground while the server sees a meanin
 
 A fraction of a block of desync is normal and is tolerated. Only a persistent mismatch over a real
 distance counts, and entity support is checked before flagging.
+
+The bail out list is narrower than the one the vertical checks use. Everything that can put a player on
+a surface the server models differently is still excluded, but a cobweb is not: a web slows a player, it
+never puts them on the ground, so a ground claim inside one is exactly as impossible as a ground claim
+in open air. NoWeb modules that fake ground contact to shed the web live in that gap.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
@@ -339,12 +346,29 @@ It shares `RestrictedSpeedModel` with `no_slow`, just with `web-multiplier` inst
 at sprint speed bleeds off over several ticks, so `settle-ticks` and the decaying envelope handle the
 entry the same way.
 
+Horizontal speed is only half of what a web does, and it was the half every module avoided. Vanilla
+multiplies vertical motion by `0.05` as well and zeroes the carried delta every tick, so a player in a
+web sinks at roughly four thousandths of a block per tick. Falling through one is not slow, it is
+impossible. The check now bounds the descent directly, which is what catches a module that leaves the
+horizontal clamp alone and simply drops through.
+
+The count of offending ticks is also no longer required to be consecutive. It accumulates over one stay
+in the web and clears when the player leaves it. A web is often only a block or two thick, and demanding
+several consecutive excesses inside that was most of the reason a module could cross one untouched.
+
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `web-multiplier` | 0.25 | vanilla cobweb clamp on horizontal motion |
 | `relative-tolerance` | 0.05 | proportional slack on the clamped envelope |
 | `absolute-tolerance` | 0.005 | absolute slack on the clamped envelope |
-| `settle-ticks` | 3.0 | ticks after entering the web before measuring |
+| `settle-ticks` | 3.0 | ticks after entering the web before measuring speed |
 | `velocity-grace-ticks` | 20.0 | ticks after server applied velocity that are ignored |
-| `required-streak` | 3 | consecutive excesses before flagging |
+| `required-streak` | 3 | offending speed ticks in one stay before flagging |
 | `severity-scale` | 0.3 | proportional excess mapping to full severity |
+| `vertical-settle-ticks` | 1.0 | ticks after entering the web before measuring descent |
+| `maximum-descent` | 0.03 | descent per tick a web permits, vanilla sits near 0.004 |
+| `vertical-required-ticks` | 2 | offending descent ticks in one stay before flagging |
+| `vertical-severity-scale` | 1.5 | proportional excess mapping to full severity |
+
+A NoWeb that fakes ground contact to escape the clamp is a `ground_spoof` case rather than this one,
+and that check now runs inside webs for exactly that reason.

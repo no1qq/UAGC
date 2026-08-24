@@ -201,7 +201,7 @@ public final class NoSlowCheck implements Check<MovementEvent, NoSlowCheck.State
         double friction = surface.friction() > 0.0D ? surface.friction() : SurfaceSample.DEFAULT_FRICTION;
         double multiplier = context.config().option("use-item-multiplier", 0.2D);
         double restricted = MovementPredictor.terminalGroundSpeed(
-                MovementPredictor.effectiveMovementSpeed(snapshot.attributes(), snapshot.activity()) * multiplier,
+                MovementPredictor.sprintCapableMovementSpeed(snapshot.attributes(), snapshot.activity()) * multiplier,
                 friction);
         double meanGapSpeed = state.gapDistance / state.gapTicks;
         double ratio = context.config().option("blink-speed-ratio", 1.6D);

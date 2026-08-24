@@ -38,6 +38,14 @@ class HorizontalSpeedCheckTest {
     }
 
     @Test
+    void sprintingWithTheServerSprintFlagClearedIsNeverFlagged() {
+        MovementCheckHarness<HorizontalSpeedCheck.State> harness = harness();
+        run(harness, Vec3.ZERO, VANILLA_SPRINT_PER_TICK, 60, false);
+        assertFalse(harness.flagged(),
+                "landing a hit clears the sprint flag server side while the client keeps sprinting");
+    }
+
+    @Test
     void vanillaSprintingIsNeverFlagged() {
         MovementCheckHarness<HorizontalSpeedCheck.State> harness = harness();
         run(harness, Vec3.ZERO, VANILLA_SPRINT_PER_TICK, 60, true);

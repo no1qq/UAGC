@@ -46,6 +46,12 @@ public final class Surfaces {
                 SurfaceSample.DEFAULT_FRICTION, true, "stone");
     }
 
+    public static SurfaceSample cobwebInAir(double distanceToGround) {
+        return new SurfaceSample(false, distanceToGround < 0.5D, distanceToGround, false, false, false, false,
+                false, false, false, false, false, false, false, false, true, false, false,
+                SurfaceSample.DEFAULT_FRICTION, true, "air");
+    }
+
     public static SurfaceSample slime() {
         return new SurfaceSample(true, true, 0.0D, false, false, false, false, false, false,
                 false, true, false, false, false, false, false, false, false,

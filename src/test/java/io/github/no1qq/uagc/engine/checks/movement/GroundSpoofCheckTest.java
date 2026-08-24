@@ -70,6 +70,24 @@ class GroundSpoofCheckTest {
     }
 
     @Test
+    void claimingGroundInsideACobwebIsFlagged() {
+        MovementCheckHarness<GroundSpoofCheck.State> harness = harness();
+        Vec3 position = new Vec3(0.0D, 90.0D, 0.0D);
+        for (int tick = 1; tick <= 12; tick++) {
+            Vec3 next = new Vec3(position.x(), position.y() - 0.004D, position.z());
+            harness.feed(SnapshotBuilder.create()
+                    .tick(tick)
+                    .from(position)
+                    .to(next)
+                    .clientOnGround(true)
+                    .surface(Surfaces.cobwebInAir(3.0D))
+                    .build());
+            position = next;
+        }
+        assertTrue(harness.flagged(), "a cobweb never puts a player on the ground, the claim is still a spoof");
+    }
+
+    @Test
     void honestAirborneClientIsNeverFlagged() {
         MovementCheckHarness<GroundSpoofCheck.State> harness = harness();
         Vec3 position = new Vec3(0.0D, 120.0D, 0.0D);

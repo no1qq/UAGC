@@ -111,7 +111,6 @@ checks:
         absolute-tolerance: 0.005
         required-streak: 2
         severity-scale: 0.35
-        sprint-reset-ticks: 3.0
 
     sprint_direction:
       enabled: true
@@ -191,6 +190,10 @@ checks:
         velocity-grace-ticks: 20.0
         required-streak: 3
         severity-scale: 0.3
+        vertical-settle-ticks: 1.0
+        maximum-descent: 0.03
+        vertical-required-ticks: 2
+        vertical-severity-scale: 1.5
 
     timer:
       enabled: true
