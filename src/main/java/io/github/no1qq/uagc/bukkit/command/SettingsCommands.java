@@ -5,12 +5,15 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import io.github.no1qq.uagc.bukkit.UagcPlugin;
 import io.github.no1qq.uagc.bukkit.UagcRuntime;
+import io.github.no1qq.uagc.bukkit.config.SettingsWriter;
+import io.github.no1qq.uagc.bukkit.gui.SettingsMenu;
 import io.github.no1qq.uagc.engine.check.CheckCategory;
 import io.github.no1qq.uagc.engine.check.RegisteredCheck;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
+import org.bukkit.entity.Player;
 
 import java.util.List;
 import java.util.Locale;
@@ -24,9 +27,24 @@ final class SettingsCommands {
         root.then(Commands.literal("settings")
                 .requires(CommandSupport.permission("uagc.command.settings"))
                 .executes(context -> {
-                    panel(context.getSource(), plugin, runtime);
+                    open(context.getSource(), plugin, runtime);
                     return Command.SINGLE_SUCCESS;
                 })
+                .then(Commands.literal("chat")
+                        .executes(context -> {
+                            panel(context.getSource(), plugin, runtime);
+                            return Command.SINGLE_SUCCESS;
+                        }))
+                .then(Commands.literal("toggle")
+                        .then(Commands.argument("path", StringArgumentType.word())
+                                .suggests((context, builder) -> {
+                                    for (String path : paths(plugin)) {
+                                        builder.suggest(path);
+                                    }
+                                    return builder.buildFuture();
+                                })
+                                .executes(context -> set(context.getSource(), plugin, runtime,
+                                        StringArgumentType.getString(context, "path"), "toggle"))))
                 .then(Commands.literal("checks")
                         .executes(context -> {
                             checkList(context.getSource(), runtime, null);
@@ -69,6 +87,14 @@ final class SettingsCommands {
                                         .executes(context -> set(context.getSource(), plugin, runtime,
                                                 StringArgumentType.getString(context, "path"),
                                                 StringArgumentType.getString(context, "value")))))));
+    }
+
+    private static void open(CommandSourceStack source, UagcPlugin plugin, UagcRuntime runtime) {
+        if (source.getSender() instanceof Player player) {
+            new SettingsMenu(plugin, runtime).open(player);
+            return;
+        }
+        panel(source, plugin, runtime);
     }
 
     private static void panel(CommandSourceStack source, UagcPlugin plugin, UagcRuntime runtime) {
@@ -183,7 +209,7 @@ final class SettingsCommands {
         boolean current = config.getBoolean(path);
         CommandSupport.sendRaw(source, "<gray>  " + label + ": "
                 + (current ? "<green>on</green>" : "<red>off</red>")
-                + " <click:run_command:'/uagc settings set " + path + " " + !current + "'>"
+                + " <click:run_command:'/uagc settings toggle " + path + "'>"
                 + "<hover:show_text:'" + path + "'><aqua>[toggle]</aqua></hover></click>");
     }
 
@@ -209,49 +235,32 @@ final class SettingsCommands {
 
     private static int set(CommandSourceStack source, UagcPlugin plugin, UagcRuntime runtime,
                            String path, String rawValue) {
-        FileConfiguration config = plugin.getConfig();
-        if (!config.contains(path)) {
-            CommandSupport.error(source, "unknown setting: " + path);
-            return Command.SINGLE_SUCCESS;
-        }
-        Object current = config.get(path);
-        String value = rawValue.trim();
-        Object parsed;
-        if (current instanceof Boolean) {
-            if (!value.equalsIgnoreCase("true") && !value.equalsIgnoreCase("false")) {
-                CommandSupport.error(source, path + " expects true or false");
-                return Command.SINGLE_SUCCESS;
+        SettingsWriter.Result result = SettingsWriter.parseAndSet(plugin, path, rawValue);
+        switch (result) {
+            case UNKNOWN_PATH -> CommandSupport.error(source, "unknown setting: " + path);
+            case WRONG_TYPE -> CommandSupport.error(source, path + " does not take that value");
+            case RELOAD_FAILED -> CommandSupport.error(source,
+                    "the value was written but the reload failed, see the server log");
+            case APPLIED -> {
+                String value = SettingsWriter.format(plugin, path);
+                CommandSupport.send(source, "<white>" + path + "</white> is now <green>" + value + "</green>");
+                runtime.server().info("settings " + path + " set to " + value
+                        + " by " + CommandSupport.senderName(source));
+                reopen(source, plugin, runtime, path);
             }
-            parsed = Boolean.parseBoolean(value);
-        } else if (current instanceof Number) {
-            double number;
-            try {
-                number = Double.parseDouble(value);
-            } catch (NumberFormatException exception) {
-                CommandSupport.error(source, path + " expects a number");
-                return Command.SINGLE_SUCCESS;
-            }
-            if (!Double.isFinite(number)) {
-                CommandSupport.error(source, path + " expects a finite number");
-                return Command.SINGLE_SUCCESS;
-            }
-            parsed = current instanceof Integer ? (Object) (int) Math.round(number) : (Object) number;
-        } else if (current instanceof String) {
-            parsed = value;
-        } else {
-            CommandSupport.error(source, path + " is not editable from here, change it in config.yml");
-            return Command.SINGLE_SUCCESS;
         }
-
-        config.set(path, parsed);
-        plugin.saveConfig();
-        if (!plugin.reloadUagc()) {
-            CommandSupport.error(source, "the value was written but the reload failed, see the server log");
-            return Command.SINGLE_SUCCESS;
-        }
-        CommandSupport.send(source, "<white>" + path + "</white> is now <green>" + parsed + "</green>");
-        runtime.server().info("settings " + path + " set to " + parsed + " by " + CommandSupport.senderName(source));
         return Command.SINGLE_SUCCESS;
+    }
+
+    private static void reopen(CommandSourceStack source, UagcPlugin plugin, UagcRuntime runtime, String path) {
+        if (!path.startsWith("checks.")) {
+            panel(source, plugin, runtime);
+            return;
+        }
+        String[] parts = path.split("\\.");
+        if (parts.length >= 3) {
+            checkPanel(source, plugin, runtime, parts[2]);
+        }
     }
 
     private static List<String> paths(UagcPlugin plugin) {

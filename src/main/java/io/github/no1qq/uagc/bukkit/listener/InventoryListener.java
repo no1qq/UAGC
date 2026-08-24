@@ -38,6 +38,9 @@ public final class InventoryListener implements Listener {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
+        if (io.github.no1qq.uagc.bukkit.gui.SettingsMenuListener.menuOf(event.getInventory().getHolder()) != null) {
+            return;
+        }
         PlayerData data = runtime.players().get(player.getUniqueId());
         if (data == null) {
             return;

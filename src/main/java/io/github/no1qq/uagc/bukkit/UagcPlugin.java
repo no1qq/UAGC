@@ -10,6 +10,7 @@ import io.github.no1qq.uagc.bukkit.listener.ConnectionListener;
 import io.github.no1qq.uagc.bukkit.listener.FreezeListener;
 import io.github.no1qq.uagc.bukkit.listener.InteractionListener;
 import io.github.no1qq.uagc.bukkit.listener.InventoryListener;
+import io.github.no1qq.uagc.bukkit.gui.SettingsMenuListener;
 import io.github.no1qq.uagc.bukkit.listener.MovementListener;
 import io.github.no1qq.uagc.bukkit.listener.StateListener;
 import io.github.no1qq.uagc.engine.alert.AlertService;
@@ -107,6 +108,7 @@ public final class UagcPlugin extends JavaPlugin {
         Bukkit.getPluginManager().registerEvents(new CombatListener(runtime), this);
         Bukkit.getPluginManager().registerEvents(new InteractionListener(runtime), this);
         Bukkit.getPluginManager().registerEvents(new InventoryListener(runtime), this);
+        Bukkit.getPluginManager().registerEvents(new SettingsMenuListener(), this);
         Bukkit.getPluginManager().registerEvents(new FreezeListener(runtime), this);
     }
 

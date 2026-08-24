@@ -62,9 +62,11 @@ config file until it is used again. `verbose` and `mute` remain player only and 
 | `/uagc tempban (player) (duration) [reason]` | `uagc.command.ban` | temporary ban |
 | `/uagc unban (name)` | `uagc.command.unban` | pardon a ban |
 | `/uagc punish (player) (action) [value]` | `uagc.command.punish` | apply any punishment action directly |
-| `/uagc settings` | `uagc.command.settings` | open the settings panel, every value is clickable and writes straight to `config.yml` |
-| `/uagc settings checks [category]` | `uagc.command.settings` | list checks, click one to open its own panel |
-| `/uagc settings check (check)` | `uagc.command.settings` | thresholds and every option of one check |
+| `/uagc settings` | `uagc.command.settings` | open the chest menu, or the chat panel when run from the console |
+| `/uagc settings chat` | `uagc.command.settings` | the chat panel, for anyone who prefers it |
+| `/uagc settings checks [category]` | `uagc.command.settings` | list checks in chat, click one to open its own panel |
+| `/uagc settings check (check)` | `uagc.command.settings` | thresholds and every option of one check, in chat |
+| `/uagc settings toggle (path)` | `uagc.command.settings` | flip one boolean `config.yml` path |
 | `/uagc settings set (path) (value)` | `uagc.command.settings` | set one `config.yml` path, save and reload |
 | `/uagc reload` | `uagc.command.reload` | reload configuration and refresh permission caches |
 
@@ -243,19 +245,29 @@ be punished by staff commands.
 
 ## The settings panel
 
-`/uagc settings` renders the live configuration as a clickable panel. Toggles show `[toggle]`, numbers
-show `[-]` and `[+]` stepped by a size that suits their scale, and hovering any of them shows the
-`config.yml` path being changed. Clicking one runs `/uagc settings set <path> <value>`, which writes the
-value to `config.yml`, saves it, and reloads the runtime the same way `/uagc reload` does. Nothing is
-kept in memory only, so a restart keeps whatever was set.
+`/uagc settings` opens a double chest menu built from the live configuration.
 
-`set` refuses a path that does not already exist in `config.yml` and refuses a value of the wrong shape,
-so a typo cannot invent a key or turn a number into a word. Integers stay integers. Every change is
+Every entry is an item. A boolean is a dye, lime for on and grey for off, and clicking it flips the
+value. A number is a comparator: left click raises it, right click lowers it, and holding shift makes
+the step ten times bigger. The step itself scales with the value, so a tolerance of `0.005` moves in
+thousandths while a threshold of `200` moves in fives. Every item names its own `config.yml` path in the
+lore, and a name tag appears in the bottom row saying what the last click changed.
+
+The chest button opens the check list. Each check is a dye showing its state, alert threshold and how
+many times it has flagged this session, and clicking it opens that check own page: the shared
+thresholds first, then every option it reads, including the ones documented in [Checks](checks.md).
+
+Every change writes to `config.yml`, saves it, and reloads the runtime the same way `/uagc reload` does,
+so nothing is kept in memory only and a restart keeps whatever was set.
+
+`/uagc settings chat` renders the same thing as clickable chat lines, and the console gets that version
+automatically since it cannot open a chest.
+
+`/uagc settings set` refuses a path that does not already exist in `config.yml` and refuses a value of
+the wrong shape, so a typo cannot invent a key or turn a number into a word. Integers stay integers.
+`/uagc settings toggle` flips a boolean without having to name the new value, which is what the chat
+panel uses so that clicking the same line twice puts a setting back where it was. Every change is
 logged to the console with the name of whoever made it.
-
-`/uagc settings checks` lists every registered check with its state and alert threshold, and each one
-opens its own panel with the shared thresholds first and then every option the check reads, including
-the ones documented in [Checks](checks.md).
 
 The one setting worth calling out is `alerts.flag-on-alert`. With it on, any movement category alert
 also sets the player back to their last safe position, so the player who triggered it visibly stutters
