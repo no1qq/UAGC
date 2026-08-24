@@ -49,7 +49,7 @@ To run only the test suite:
 | Freeze system with persistence | implemented |
 | Trusted plugin integration API | implemented |
 | Movement checks | vertical motion, horizontal speed, sprint direction, ground spoof, no fall, no slow, no web, timer |
-| Combat checks | reach, attack rhythm |
+| Combat checks | reach, attack rhythm, velocity, knockback delay |
 | Interaction checks | fast break, block reach, invalid placement |
 | Protocol checks | invalid position |
 

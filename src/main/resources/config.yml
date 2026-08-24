@@ -236,6 +236,36 @@ checks:
         minimum-cps: 7.0
         maximum-deviation-millis: 6.0
 
+    velocity:
+      enabled: true
+      violation-increment: 2.0
+      decay-per-tick: 0.01
+      max-violation-level: 200.0
+      minimum-confidence: 0.45
+      alert-threshold: 2.0
+      options:
+        minimum-magnitude: 0.2
+        minimum-ratio: 0.45
+        response-ratio: 0.45
+        window-ticks: 10.0
+        required-samples: 3
+        severity-scale: 0.35
+
+    knockback_delay:
+      enabled: true
+      violation-increment: 2.0
+      decay-per-tick: 0.01
+      max-violation-level: 200.0
+      minimum-confidence: 0.45
+      alert-threshold: 2.0
+      options:
+        minimum-magnitude: 0.2
+        response-ratio: 0.45
+        window-ticks: 12.0
+        maximum-delay-ticks: 3.0
+        required-samples: 2
+        severity-scale: 4.0
+
   interaction:
     fast_break:
       enabled: true

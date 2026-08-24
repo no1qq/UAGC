@@ -233,6 +233,61 @@ never judged.
 | `minimum-cps` | 7.0 | click rate below which automation is not claimed |
 | `maximum-deviation-millis` | 6.0 | deviation below which a rhythm looks mechanical |
 
+### velocity
+
+Knockback is the one piece of movement the server hands out rather than observes. When a player is hit,
+pushed or blown up, the server sends a velocity and expects the client to travel it. Velocity modules
+keep some fraction of it, or none at all, which is how a player stays out of a combo or refuses to be
+pushed off a ledge.
+
+The check records the horizontal velocity the server sent and the direction it pointed, then watches the
+following ticks and keeps the largest movement the player made *along that direction*. Movement across
+or against it is ignored, so running back in afterwards proves nothing either way. At the end of the
+window the peak is compared against the magnitude that was sent.
+
+Everything that can legitimately eat knockback ends the measurement instead of counting against the
+player: a wall, a liquid, a ladder, a web, slime, honey, a vehicle, gliding, riptiding, flight, an
+unloaded chunk, a broken tick sequence, or a second velocity arriving on top of the first. Below
+`minimum-magnitude` nothing is judged at all, because a small nudge carries no evidence. On top of that
+`required-samples` separate knockbacks have to come up short in a row, and any hit taken properly clears
+the count.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `minimum-magnitude` | 0.2 | horizontal velocity below which nothing is judged |
+| `minimum-ratio` | 0.45 | share of the knockback the player must actually travel |
+| `response-ratio` | 0.45 | share that counts as having started to move |
+| `window-ticks` | 10.0 | ticks watched after the velocity, plus the player's latency |
+| `required-samples` | 3 | knockbacks that came up short in a row before flagging |
+| `severity-scale` | 0.35 | shortfall that maps to full severity |
+
+### knockback_delay
+
+The same family, one step subtler. The client takes the whole knockback but holds the velocity packet
+for a couple of hundred milliseconds first, so the movement lands after the moment it mattered. The
+module in the wild advertises this as a delay of 100 to 300 ms with an adjustable chance.
+
+The trick is telling that apart from ordinary latency, and latency is measurable. The check subtracts
+the player's full round trip time from the observed response, not half of it, which already hands them
+more slack than the network can honestly claim. Whatever is left over is time the client sat on the
+packet. Two of those in a row are needed before anything is reported.
+
+A hit that never lands at all is not this check's business, it belongs to `velocity`, so a knockback
+with no response is dropped rather than counted here.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `minimum-magnitude` | 0.2 | horizontal velocity below which nothing is judged |
+| `response-ratio` | 0.45 | share of the knockback that counts as the response |
+| `window-ticks` | 12.0 | ticks watched before a knockback is treated as never taken |
+| `maximum-delay-ticks` | 3.0 | ticks past the round trip time that are still forgiven |
+| `required-samples` | 2 | delayed knockbacks in a row before flagging |
+| `severity-scale` | 4.0 | ticks of excess delay that map to full severity |
+
+Both of these sit in the combat category rather than movement on purpose. Knockback grants a movement
+exemption, so a movement category check would exempt itself out of existence the moment it had something
+to look at.
+
 ## Interaction
 
 ### fast_break

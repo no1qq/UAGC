@@ -2,7 +2,9 @@ package io.github.no1qq.uagc.engine.checks;
 
 import io.github.no1qq.uagc.engine.check.CheckRegistry;
 import io.github.no1qq.uagc.engine.checks.combat.AttackRhythmCheck;
+import io.github.no1qq.uagc.engine.checks.combat.KnockbackDelayCheck;
 import io.github.no1qq.uagc.engine.checks.combat.ReachCheck;
+import io.github.no1qq.uagc.engine.checks.combat.VelocityCheck;
 import io.github.no1qq.uagc.engine.checks.interaction.BlockReachCheck;
 import io.github.no1qq.uagc.engine.checks.interaction.FastBreakCheck;
 import io.github.no1qq.uagc.engine.checks.interaction.InvalidPlacementCheck;
@@ -41,6 +43,8 @@ public final class CheckBootstrap {
         registry.register(new TimerCheck(), config);
         registry.register(new ReachCheck(), config);
         registry.register(new AttackRhythmCheck(), config);
+        registry.register(new VelocityCheck(), config);
+        registry.register(new KnockbackDelayCheck(), config);
         registry.register(new FastBreakCheck(), config);
         registry.register(new BlockReachCheck(), config);
         registry.register(new InvalidPlacementCheck(), config);
