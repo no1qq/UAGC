@@ -13,9 +13,20 @@ public final class BlockSampler {
 
     private static final double GROUND_EPSILON = 0.03D;
     private static final double PLAYER_HALF_WIDTH = 0.3D;
+    private static final double PLAYER_HEIGHT = 1.8D;
     private static final int MAX_GROUND_SCAN = 6;
 
     private BlockSampler() {
+    }
+
+    private static final class BodyScan {
+        boolean cobweb;
+        boolean powderSnow;
+        boolean berryBush;
+        boolean honey;
+        boolean bubbleColumn;
+        boolean scaffolding;
+        boolean climbable;
     }
 
     public static SurfaceSample sample(Player player, Location to, double scale) {
@@ -30,6 +41,7 @@ public final class BlockSampler {
         }
 
         double half = PLAYER_HALF_WIDTH * Math.max(0.1D, scale);
+        double height = PLAYER_HEIGHT * Math.max(0.1D, scale);
         double x = to.getX();
         double y = to.getY();
         double z = to.getZ();
@@ -42,20 +54,17 @@ public final class BlockSampler {
 
         double distanceToGround = solidBelow ? 0.0D : distanceToGround(world, x, y, z, half);
 
-        BoundingBox body = new BoundingBox(x - half, y + 0.1D, z - half, x + half, y + 1.7D * scale, z + half);
+        BoundingBox body = new BoundingBox(x - half, y + 0.1D, z - half, x + half, y + height * 0.95D, z + half);
         boolean insideSolid = intersectsSolid(world, body);
 
         BoundingBox sides = new BoundingBox(x - half - 0.05D, y + 0.1D, z - half - 0.05D,
-                x + half + 0.05D, y + 1.5D * scale, z + half + 0.05D);
+                x + half + 0.05D, y + height * 0.85D, z + half + 0.05D);
         boolean collidingHorizontally = !insideSolid && intersectsSolid(world, sides);
 
+        BodyScan scan = scanBody(world, new BoundingBox(x - half, y, z - half, x + half, y + height, z + half));
+
         Block below = world.getBlockAt(blockX, (int) Math.floor(y - 0.1D), blockZ);
-        Block at = world.getBlockAt(blockX, (int) Math.floor(y + 0.1D), blockZ);
-        Block head = world.getBlockAt(blockX, (int) Math.floor(y + 1.5D * scale), blockZ);
-
         Material belowType = below.getType();
-        Material atType = at.getType();
-
         double friction = frictionOf(belowType);
 
         return new SurfaceSample(
@@ -66,20 +75,55 @@ public final class BlockSampler {
                 insideSolid,
                 player.isInWater(),
                 player.isInLava(),
-                head.getType() == Material.WATER,
-                atType == Material.BUBBLE_COLUMN || belowType == Material.BUBBLE_COLUMN,
-                player.isClimbing() || Tag.CLIMBABLE.isTagged(atType),
+                world.getBlockAt(blockX, (int) Math.floor(y + height * 0.85D), blockZ).getType() == Material.WATER,
+                scan.bubbleColumn || belowType == Material.BUBBLE_COLUMN,
+                player.isClimbing() || scan.climbable,
                 belowType == Material.SLIME_BLOCK,
-                belowType == Material.HONEY_BLOCK || atType == Material.HONEY_BLOCK,
+                scan.honey || belowType == Material.HONEY_BLOCK,
                 Tag.BEDS.isTagged(belowType),
-                atType == Material.SCAFFOLDING || belowType == Material.SCAFFOLDING,
-                atType == Material.POWDER_SNOW || belowType == Material.POWDER_SNOW,
-                atType == Material.COBWEB,
-                atType == Material.SWEET_BERRY_BUSH,
+                scan.scaffolding || belowType == Material.SCAFFOLDING,
+                scan.powderSnow || belowType == Material.POWDER_SNOW,
+                scan.cobweb,
+                scan.berryBush,
                 Tag.SLABS.isTagged(belowType) || Tag.STAIRS.isTagged(belowType),
                 friction,
                 true,
                 belowType.getKey().getKey());
+    }
+
+    private static BodyScan scanBody(World world, BoundingBox box) {
+        BodyScan scan = new BodyScan();
+        int minX = (int) Math.floor(box.getMinX());
+        int maxX = (int) Math.floor(box.getMaxX());
+        int minY = (int) Math.floor(box.getMinY());
+        int maxY = (int) Math.floor(box.getMaxY());
+        int minZ = (int) Math.floor(box.getMinZ());
+        int maxZ = (int) Math.floor(box.getMaxZ());
+
+        for (int bx = minX; bx <= maxX; bx++) {
+            for (int bz = minZ; bz <= maxZ; bz++) {
+                if (!world.isChunkLoaded(bx >> 4, bz >> 4)) {
+                    continue;
+                }
+                for (int by = minY; by <= maxY; by++) {
+                    Material type = world.getBlockAt(bx, by, bz).getType();
+                    switch (type) {
+                        case COBWEB -> scan.cobweb = true;
+                        case POWDER_SNOW -> scan.powderSnow = true;
+                        case SWEET_BERRY_BUSH -> scan.berryBush = true;
+                        case HONEY_BLOCK -> scan.honey = true;
+                        case BUBBLE_COLUMN -> scan.bubbleColumn = true;
+                        case SCAFFOLDING -> scan.scaffolding = true;
+                        default -> {
+                            if (Tag.CLIMBABLE.isTagged(type)) {
+                                scan.climbable = true;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return scan;
     }
 
     public static double frictionOf(Material material) {

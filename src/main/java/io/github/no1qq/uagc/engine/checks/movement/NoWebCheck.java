@@ -7,31 +7,36 @@ import io.github.no1qq.uagc.engine.check.CheckDefinition;
 import io.github.no1qq.uagc.engine.check.CheckResult;
 import io.github.no1qq.uagc.engine.check.ConfidenceModel;
 import io.github.no1qq.uagc.engine.check.event.MovementEvent;
+import io.github.no1qq.uagc.engine.movement.AttributeSample;
+import io.github.no1qq.uagc.engine.movement.MovementPredictor;
 import io.github.no1qq.uagc.engine.movement.MovementSnapshot;
+import io.github.no1qq.uagc.engine.movement.SurfaceSample;
 import io.github.no1qq.uagc.engine.player.PlayerData;
 
 public final class NoWebCheck implements Check<MovementEvent, NoWebCheck.State> {
 
     private static final CheckDefinition DEFINITION = CheckDefinition
             .builder("no_web", "NoWeb", CheckCategory.MOVEMENT)
-            .description("a cobweb clamps horizontal motion to a quarter of it and vertical motion to a twentieth")
+            .description("a cobweb multiplies the whole movement of the next tick and drops the carried motion")
             .latencySensitive()
             .tickSensitive()
             .build();
 
     public static final class State {
-        final RestrictedSpeedModel.Envelope envelope = new RestrictedSpeedModel.Envelope();
+        long lastWebTick = Long.MIN_VALUE;
+        double carriedHorizontal;
+        double carriedDescent;
         int horizontalExcess;
         int verticalExcess;
         double worstDescent;
-        long enteredTick = Long.MIN_VALUE;
 
         void reset() {
-            envelope.reset();
+            lastWebTick = Long.MIN_VALUE;
+            carriedHorizontal = 0.0D;
+            carriedDescent = 0.0D;
             horizontalExcess = 0;
             verticalExcess = 0;
             worstDescent = 0.0D;
-            enteredTick = Long.MIN_VALUE;
         }
     }
 
@@ -54,26 +59,22 @@ public final class NoWebCheck implements Check<MovementEvent, NoWebCheck.State> 
     public CheckResult inspect(CheckContext context, MovementEvent event, State state) {
         MovementSnapshot snapshot = event.snapshot();
         PlayerData player = context.player();
+        SurfaceSample surface = snapshot.surface();
 
-        if (!snapshot.surface().inCobweb()) {
-            state.reset();
-            return CheckResult.passed();
-        }
+        double actual = snapshot.horizontalDistance();
+        double descent = -snapshot.verticalDelta();
+
         if (snapshot.activity().hasAlternateMovement()
                 || snapshot.activity().allowFlight()
                 || snapshot.activity().gameMode().allowsFlight()
-                || snapshot.surface().inLiquid()
-                || snapshot.surface().insideSolid()
-                || !snapshot.surface().chunkLoaded()
+                || surface.inLiquid()
+                || surface.insideSolid()
+                || !surface.chunkLoaded()
+                || snapshot.effects().hasLevitation()
                 || !MovementApplicability.isMeasurable(player, snapshot)) {
             state.reset();
             return CheckResult.passed();
         }
-
-        if (state.enteredTick == Long.MIN_VALUE) {
-            state.enteredTick = event.tick();
-        }
-        long ticksInWeb = event.tick() - state.enteredTick;
 
         long velocityGrace = (long) context.config().option("velocity-grace-ticks", 20.0D);
         if (player.velocity().appliedWithin(event.tick(), velocityGrace)) {
@@ -81,23 +82,47 @@ public final class NoWebCheck implements Check<MovementEvent, NoWebCheck.State> 
             return CheckResult.passed();
         }
 
-        CheckResult descent = inspectDescent(context, state, snapshot, ticksInWeb);
-        if (descent != null) {
-            return descent;
+        boolean clamped = state.lastWebTick != Long.MIN_VALUE && event.tick() - state.lastWebTick == 1L;
+        if (!clamped && !surface.inCobweb()) {
+            state.reset();
+        }
+        if (surface.inCobweb()) {
+            state.lastWebTick = event.tick();
         }
 
-        long settleTicks = (long) context.config().option("settle-ticks", 3.0D);
-        if (ticksInWeb < settleTicks) {
+        if (!clamped) {
+            state.carriedHorizontal = actual;
+            state.carriedDescent = Math.max(0.0D, descent);
             return CheckResult.passed();
         }
 
+        double carriedHorizontal = state.carriedHorizontal;
+        double carriedDescent = state.carriedDescent;
+        state.carriedHorizontal = 0.0D;
+        state.carriedDescent = 0.0D;
+
+        CheckResult vertical = inspectDescent(context, state, snapshot, descent, carriedDescent);
+        if (vertical != null) {
+            return vertical;
+        }
+        return inspectSpeed(context, state, snapshot, actual, carriedHorizontal);
+    }
+
+    private CheckResult inspectSpeed(CheckContext context, State state, MovementSnapshot snapshot,
+                                     double actual, double carried) {
+        PlayerData player = context.player();
+        SurfaceSample surface = snapshot.surface();
+        double friction = surface.friction() > 0.0D ? surface.friction() : SurfaceSample.DEFAULT_FRICTION;
         double multiplier = context.config().option("web-multiplier", 0.25D);
-        double allowed = RestrictedSpeedModel.allowedThisTick(state.envelope, snapshot, multiplier);
-        if (allowed == Double.MAX_VALUE) {
-            return CheckResult.passed();
-        }
+        double speed = MovementPredictor.sprintCapableMovementSpeed(snapshot.attributes(), snapshot.activity());
+        double momentum = surface.solidBelow()
+                ? MovementPredictor.groundMomentum(friction)
+                : MovementPredictor.AIR_MOMENTUM;
+        double acceleration = surface.solidBelow()
+                ? MovementPredictor.groundAcceleration(speed, friction)
+                : MovementPredictor.airAcceleration(speed, true);
 
-        double actual = snapshot.horizontalDistance();
+        double allowed = (carried * momentum + acceleration) * multiplier;
         double tolerance = allowed * context.config().option("relative-tolerance", 0.05D)
                 + context.config().option("absolute-tolerance", 0.005D)
                 + MovementApplicability.latencyTolerance(player, 0.004D);
@@ -113,7 +138,7 @@ public final class NoWebCheck implements Check<MovementEvent, NoWebCheck.State> 
         }
 
         state.horizontalExcess++;
-        int requiredTicks = context.config().optionInt("required-streak", 3);
+        int requiredTicks = context.config().optionInt("required-streak", 2);
         if (state.horizontalExcess < requiredTicks) {
             return CheckResult.passed();
         }
@@ -129,20 +154,21 @@ public final class NoWebCheck implements Check<MovementEvent, NoWebCheck.State> 
                 .with("actual", actual)
                 .with("allowed", limit)
                 .with("multiplier", multiplier)
-                .with("ticks_in_web", ticksInWeb)
                 .build();
     }
 
-    private CheckResult inspectDescent(CheckContext context, State state, MovementSnapshot snapshot, long ticksInWeb) {
-        long settleTicks = (long) context.config().option("vertical-settle-ticks", 1.0D);
-        if (ticksInWeb < settleTicks) {
-            return null;
-        }
+    private CheckResult inspectDescent(CheckContext context, State state, MovementSnapshot snapshot,
+                                       double descent, double carried) {
+        PlayerData player = context.player();
+        double multiplier = context.config().option("web-vertical-multiplier", 0.05D);
+        double gravity = snapshot.attributes().gravity() > 0.0D
+                ? snapshot.attributes().gravity()
+                : AttributeSample.VANILLA_GRAVITY;
+        double predicted = (carried + gravity) * MovementPredictor.VERTICAL_DRAG * multiplier;
+        double allowed = Math.max(predicted, context.config().option("maximum-descent", 0.02D))
+                + MovementApplicability.latencyTolerance(player, 0.002D);
 
-        double descent = -snapshot.verticalDelta();
-        double maximum = context.config().option("maximum-descent", 0.03D)
-                + MovementApplicability.latencyTolerance(context.player(), 0.002D);
-        if (descent <= maximum) {
+        if (descent <= allowed) {
             return null;
         }
 
@@ -151,7 +177,7 @@ public final class NoWebCheck implements Check<MovementEvent, NoWebCheck.State> 
 
         if (context.isDebugWatched()) {
             double reported = descent;
-            context.debug(() -> "no web descent=" + reported + " maximum=" + maximum
+            context.debug(() -> "no web descent=" + reported + " allowed=" + allowed
                     + " ticks=" + state.verticalExcess);
         }
 
@@ -159,7 +185,7 @@ public final class NoWebCheck implements Check<MovementEvent, NoWebCheck.State> 
         if (state.verticalExcess < requiredTicks) {
             return null;
         }
-        if (context.support().hasNearbyPusher(context.player().uuid())) {
+        if (context.support().hasNearbyPusher(player.uuid())) {
             state.reset();
             return null;
         }
@@ -167,12 +193,11 @@ public final class NoWebCheck implements Check<MovementEvent, NoWebCheck.State> 
         double worst = state.worstDescent;
         state.verticalExcess = 0;
         state.worstDescent = 0.0D;
-        double severity = ConfidenceModel.severityRatio(worst, maximum,
+        double severity = ConfidenceModel.severityRatio(worst, allowed,
                 context.config().option("vertical-severity-scale", 1.5D));
         return CheckResult.flag(severity, "fell through a cobweb faster than it permits")
                 .with("descent", worst)
-                .with("allowed", maximum)
-                .with("ticks_in_web", ticksInWeb)
+                .with("allowed", allowed)
                 .build();
     }
 }

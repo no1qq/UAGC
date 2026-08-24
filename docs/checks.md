@@ -334,39 +334,42 @@ module with a delay setting does nothing else.
 
 ### no_web
 
-A cobweb sets a stuck speed multiplier that collapses horizontal motion to roughly a quarter every
-tick. NoWeb ignores it and walks through at normal speed.
+A cobweb sets a stuck speed multiplier on the player. The tick after it is set, vanilla multiplies the
+entire movement vector by `0.25` horizontally and `0.05` vertically, and then zeroes the carried delta.
+That last part is the one that matters: there is no momentum in a web. Every tick starts from zero and
+gets whatever one tick of input can build, times the multiplier. A sprinting player therefore crawls at
+about `0.0325` blocks a tick and sinks at about `0.004`.
 
-This one was not a modelling gap, it was an exclusion. `MovementApplicability` lists cobwebs among the
-surfaces `horizontal_speed` refuses to measure, which turned a false positive guard into a guaranteed
-blind spot. Rather than remove that bail out and have the normal envelope pass anything slower than
-sprinting, `no_web` owns the case with the correct clamp.
+The first version of this check modelled a web as `RestrictedSpeedModel` with a `0.25` multiplier on the
+speed, which kept the momentum term and settled at `0.0716` a tick, more than twice the real clamp.
+Anything under that walked through untouched, which is exactly what a module set to a low multiplier
+does. The check now models the real thing: the allowance is one tick of input times the multiplier, plus
+whatever motion was carried into the web on the entry tick, and the carried term is clamped to the
+allowance so a cheat cannot feed its own speed back in.
 
-It shares `RestrictedSpeedModel` with `no_slow`, just with `web-multiplier` instead. Running into a web
-at sprint speed bleeds off over several ticks, so `settle-ticks` and the decaying envelope handle the
-entry the same way.
+The clamp is applied to the tick *after* the web is seen, because that is when vanilla consumes the
+multiplier. That also means leaving the web does not end the check early: the last tick in the web still
+owes one clamped tick, and a module that only unclamps after exiting is measured on it.
 
-Horizontal speed is only half of what a web does, and it was the half every module avoided. Vanilla
-multiplies vertical motion by `0.05` as well and zeroes the carried delta every tick, so a player in a
-web sinks at roughly four thousandths of a block per tick. Falling through one is not slow, it is
-impossible. The check now bounds the descent directly, which is what catches a module that leaves the
-horizontal clamp alone and simply drops through.
+Vertical motion is bounded by the same rule, which is what catches the modules that leave horizontal
+speed alone and simply drop through. Falling through a web is not slow in vanilla, it is impossible.
 
-The count of offending ticks is also no longer required to be consecutive. It accumulates over one stay
-in the web and clears when the player leaves it. A web is often only a block or two thick, and demanding
-several consecutive excesses inside that was most of the reason a module could cross one untouched.
+The sampling behind all of this was the other half of the problem. Cobwebs used to be read from a single
+block column at the player's feet, so a web at chest height, a web the player was falling past, or a web
+their box overlapped from an adjacent block simply did not exist as far as the engine was concerned. The
+whole player box is scanned now, in one pass that also picks up powder snow, berry bushes, honey,
+bubble columns, scaffolding and climbables the same way.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `web-multiplier` | 0.25 | vanilla cobweb clamp on horizontal motion |
-| `relative-tolerance` | 0.05 | proportional slack on the clamped envelope |
-| `absolute-tolerance` | 0.005 | absolute slack on the clamped envelope |
-| `settle-ticks` | 3.0 | ticks after entering the web before measuring speed |
+| `web-multiplier` | 0.25 | vanilla cobweb clamp on horizontal movement |
+| `relative-tolerance` | 0.05 | proportional slack on the clamp |
+| `absolute-tolerance` | 0.005 | absolute slack on the clamp |
 | `velocity-grace-ticks` | 20.0 | ticks after server applied velocity that are ignored |
-| `required-streak` | 3 | offending speed ticks in one stay before flagging |
+| `required-streak` | 2 | offending speed ticks in one stay before flagging |
 | `severity-scale` | 0.3 | proportional excess mapping to full severity |
-| `vertical-settle-ticks` | 1.0 | ticks after entering the web before measuring descent |
-| `maximum-descent` | 0.03 | descent per tick a web permits, vanilla sits near 0.004 |
+| `web-vertical-multiplier` | 0.05 | vanilla cobweb clamp on vertical movement |
+| `maximum-descent` | 0.02 | floor under the descent allowance, vanilla sits near 0.004 |
 | `vertical-required-ticks` | 2 | offending descent ticks in one stay before flagging |
 | `vertical-severity-scale` | 1.5 | proportional excess mapping to full severity |
 

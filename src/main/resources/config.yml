@@ -186,12 +186,11 @@ checks:
         web-multiplier: 0.25
         relative-tolerance: 0.05
         absolute-tolerance: 0.005
-        settle-ticks: 3.0
         velocity-grace-ticks: 20.0
-        required-streak: 3
+        required-streak: 2
         severity-scale: 0.3
-        vertical-settle-ticks: 1.0
-        maximum-descent: 0.03
+        web-vertical-multiplier: 0.05
+        maximum-descent: 0.02
         vertical-required-ticks: 2
         vertical-severity-scale: 1.5
 
