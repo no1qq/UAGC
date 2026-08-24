@@ -62,6 +62,10 @@ public final class HorizontalSpeedCheck implements Check<MovementEvent, Horizont
         SurfaceSample surface = snapshot.surface();
         double friction = surface.friction() > 0.0D ? surface.friction() : SurfaceSample.DEFAULT_FRICTION;
         double movementSpeed = MovementPredictor.effectiveMovementSpeed(snapshot.attributes(), snapshot.activity());
+        long sprintResetTicks = (long) context.config().option("sprint-reset-ticks", 3.0D);
+        if (!snapshot.activity().sprinting() && player.combat().isInCombat(event.tick(), sprintResetTicks)) {
+            movementSpeed *= MovementPredictor.SPRINT_MULTIPLIER;
+        }
         double terminal = MovementPredictor.terminalGroundSpeed(movementSpeed, friction);
         double actual = snapshot.horizontalDistance();
 

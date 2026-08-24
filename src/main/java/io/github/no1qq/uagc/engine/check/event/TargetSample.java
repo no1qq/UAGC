@@ -20,9 +20,18 @@ public record TargetSample(
     }
 
     public double minimumDistanceFrom(Vec3 eye) {
+        return minimumDistanceFrom(eye, 0);
+    }
+
+    public double minimumDistanceFrom(Vec3 eye, int rewindTicks) {
         double best = distanceToBox(eye, position);
         for (Vec3 historic : recentPositions) {
             best = Math.min(best, distanceToBox(eye, historic));
+        }
+        if (rewindTicks > 0 && velocity.isFinite() && velocity.lengthSquared() > 1.0E-8D) {
+            for (int tick = 1; tick <= rewindTicks; tick++) {
+                best = Math.min(best, distanceToBox(eye, position.subtract(velocity.multiply(tick))));
+            }
         }
         return best;
     }

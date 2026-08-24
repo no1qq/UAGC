@@ -111,6 +111,7 @@ checks:
         absolute-tolerance: 0.005
         required-streak: 2
         severity-scale: 0.35
+        sprint-reset-ticks: 3.0
 
     sprint_direction:
       enabled: true
@@ -168,6 +169,12 @@ checks:
         velocity-grace-ticks: 20.0
         required-streak: 4
         severity-scale: 0.3
+        blink-minimum-gap-ticks: 1
+        blink-maximum-gap-ticks: 12
+        blink-required-cycles: 8
+        blink-gap-jitter-ticks: 1
+        blink-speed-ratio: 1.6
+        blink-severity-scale: 0.4
 
     no_web:
       enabled: true
@@ -209,6 +216,11 @@ checks:
         tolerance: 0.06
         latency-tolerance: 0.03
         severity-scale: 1.2
+        required-streak: 3
+        streak-window-ticks: 60.0
+        minimum-rewind-ticks: 3
+        maximum-rewind-ticks: 8
+        attacker-motion-cap: 0.4
 
     attack_rhythm:
       enabled: true

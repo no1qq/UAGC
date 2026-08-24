@@ -92,6 +92,53 @@ class NoSlowCheckTest {
         assertFalse(harness.flagged(), "being knocked back while eating is not no slow");
     }
 
+    private void runBlink(MovementCheckHarness<NoSlowCheck.State> harness,
+                          double perTick, int cycles, int[] gaps) {
+        Vec3 position = Vec3.ZERO;
+        int tick = 0;
+        for (int cycle = 0; cycle < cycles; cycle++) {
+            int gap = gaps[cycle % gaps.length];
+            for (int step = 0; step <= gap; step++) {
+                tick++;
+                boolean usingItem = step == 0;
+                Vec3 next = new Vec3(position.x() + perTick, position.y(), position.z());
+                harness.feed(SnapshotBuilder.create()
+                        .tick(tick)
+                        .from(position)
+                        .to(next)
+                        .usingItem(usingItem)
+                        .sprinting(true)
+                        .surface(Surfaces.ground())
+                        .build());
+                position = next;
+            }
+        }
+    }
+
+    @Test
+    void releasingTheItemOnAFixedIntervalIsFlagged() {
+        for (int delay = 1; delay <= 10; delay++) {
+            MovementCheckHarness<NoSlowCheck.State> harness = harness();
+            runBlink(harness, SPRINT_PER_TICK, 12, new int[] {delay});
+            assertTrue(harness.flagged(),
+                    "a fixed " + delay + " tick release pattern at full sprint speed is no slow");
+        }
+    }
+
+    @Test
+    void irregularRightClickSpamIsNeverFlagged() {
+        MovementCheckHarness<NoSlowCheck.State> harness = harness();
+        runBlink(harness, SPRINT_PER_TICK, 16, new int[] {2, 7, 3, 11, 5, 2, 9});
+        assertFalse(harness.flagged(), "a human hand never releases on a fixed interval");
+    }
+
+    @Test
+    void spammingAnItemWhileActuallySlowedIsNeverFlagged() {
+        MovementCheckHarness<NoSlowCheck.State> harness = harness();
+        runBlink(harness, SLOWED_PER_TICK, 16, new int[] {4});
+        assertFalse(harness.flagged(), "the slowdown was honoured, the release pattern alone proves nothing");
+    }
+
     @Test
     void iceDoesNotProduceAFalseFlag() {
         MovementCheckHarness<NoSlowCheck.State> harness = harness();

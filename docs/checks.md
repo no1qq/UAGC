@@ -65,6 +65,12 @@ speed attribute and vehicles all pass, while a sustained 0.75 blocks per tick is
 | `absolute-tolerance` | 0.005 | absolute slack on the envelope |
 | `required-streak` | 2 | consecutive excesses before flagging |
 | `severity-scale` | 0.35 | proportional excess mapping to full severity |
+| `sprint-reset-ticks` | 3.0 | ticks after an attack where the sprint envelope is still allowed |
+
+Landing a hit clears the server side sprint flag while the client is still carrying sprint momentum for
+another tick or two. For `sprint-reset-ticks` after an attack the sprint multiplier is kept in the
+envelope, which is why a vanilla hit no longer produces a speed flag. It grants nothing a sprinting
+player could not already do.
 
 ### sprint_direction
 
@@ -184,11 +190,26 @@ For player targets the minimum distance across their recent tracked positions is
 was closer a moment ago explains the measurement instead of producing a violation. Attackers in a
 vehicle or riptiding are skipped because their positions desync.
 
+Mobs are not tracked that way, and the position the server holds for one is always a little ahead of
+where the client drew it when the click was sent. The target is therefore also rewound along its own
+velocity for up to `maximum-rewind-ticks`, scaled by the attacker's ping, and the attacker's own last
+tick of motion is added to the tolerance because the eye position is sampled after their move for that
+tick was applied. Both of those are ordinary desync on a vanilla hit, not evidence.
+
+Even then a single stretched hit means nothing, so `required-streak` consecutive attacks must all sit
+past the limit before anything is reported, and any hit inside the limit clears the streak. The worst
+distance in the streak is what gets reported.
+
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `tolerance` | 0.06 | absolute slack |
 | `latency-tolerance` | 0.03 | extra slack per 100 ms of ping |
 | `severity-scale` | 1.2 | excess distance mapping to full severity |
+| `required-streak` | 3 | consecutive attacks past the limit before flagging |
+| `streak-window-ticks` | 60.0 | idle ticks between attacks that clear the streak |
+| `minimum-rewind-ticks` | 3 | target rewind applied at any ping |
+| `maximum-rewind-ticks` | 8 | cap on the ping scaled target rewind |
+| `attacker-motion-cap` | 0.4 | cap on the attacker's own last tick of motion added as slack |
 
 ### attack_rhythm
 
@@ -281,6 +302,28 @@ from whatever speed you were carrying.
 | `velocity-grace-ticks` | 20.0 | ticks after server applied velocity that are ignored |
 | `required-streak` | 4 | consecutive excesses before flagging |
 | `severity-scale` | 0.3 | proportional excess mapping to full severity |
+
+Modules with a delay tick setting do not keep the item raised. They drop the use for a fixed number of
+ticks, sprint through the gap at full speed and raise it again, so every tick the server measures is
+either honestly slowed or honestly not using an item. The envelope alone can never see that, which is
+why a delay of four ticks or more used to walk straight through the check.
+
+The second half of the check watches the release pattern instead of the speed. It records the length
+of every gap between two uses, and the distance covered inside those gaps. A gap only counts while it
+stays under `blink-maximum-gap-ticks`, so putting the item away normally clears the record. Once
+`blink-required-cycles` gaps have been seen, the gap lengths must agree to within
+`blink-gap-jitter-ticks` and the mean speed inside them must be more than `blink-speed-ratio` times the
+slowed terminal speed. A hand on a mouse never releases on the same tick count eight times running, a
+module with a delay setting does nothing else.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `blink-minimum-gap-ticks` | 1 | shortest release gap that counts as a cycle |
+| `blink-maximum-gap-ticks` | 12 | longest release gap still treated as one pattern |
+| `blink-required-cycles` | 8 | release gaps needed before the pattern is judged |
+| `blink-gap-jitter-ticks` | 1 | spread allowed between the shortest and longest gap |
+| `blink-speed-ratio` | 1.6 | how far past the slowed terminal speed the gaps must run |
+| `blink-severity-scale` | 0.4 | proportional excess mapping to full severity |
 
 ### no_web
 
