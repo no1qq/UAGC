@@ -9,6 +9,7 @@ import io.github.no1qq.uagc.engine.checks.interaction.BlockReachCheck;
 import io.github.no1qq.uagc.engine.checks.interaction.FastBreakCheck;
 import io.github.no1qq.uagc.engine.checks.interaction.InvalidPlacementCheck;
 import io.github.no1qq.uagc.engine.checks.inventory.InventoryMoveCheck;
+import io.github.no1qq.uagc.engine.checks.inventory.ScreenMoveCheck;
 import io.github.no1qq.uagc.engine.checks.inventory.SilentSwitchCheck;
 import io.github.no1qq.uagc.engine.checks.movement.GroundSpoofCheck;
 import io.github.no1qq.uagc.engine.checks.movement.HorizontalSpeedCheck;
@@ -51,6 +52,7 @@ public final class CheckBootstrap {
         registry.register(new BlockReachCheck(), config);
         registry.register(new InvalidPlacementCheck(), config);
         registry.register(new InventoryMoveCheck(), config);
+        registry.register(new ScreenMoveCheck(), config);
         registry.register(new SilentSwitchCheck(), config);
     }
 }

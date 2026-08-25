@@ -9,6 +9,7 @@ public final class InteractionState {
     private long lastPlaceTick = Long.MIN_VALUE;
     private long lastInteractTick = Long.MIN_VALUE;
     private int placesInWindow;
+    private long screenOpenTick = Long.MIN_VALUE;
     private long placeWindowStartTick = Long.MIN_VALUE;
 
     public void beginBlockDamage(long blockKey, long tick, long millis) {
@@ -59,6 +60,23 @@ public final class InteractionState {
         lastInteractTick = Long.MIN_VALUE;
         placesInWindow = 0;
         placeWindowStartTick = Long.MIN_VALUE;
+        screenOpenTick = Long.MIN_VALUE;
+    }
+
+    public void openScreen(long tick) {
+        this.screenOpenTick = tick;
+    }
+
+    public void closeScreen() {
+        this.screenOpenTick = Long.MIN_VALUE;
+    }
+
+    public long screenOpenTick() {
+        return screenOpenTick;
+    }
+
+    public boolean screenOpen() {
+        return screenOpenTick != Long.MIN_VALUE;
     }
 
     public long lastBreakTick() {

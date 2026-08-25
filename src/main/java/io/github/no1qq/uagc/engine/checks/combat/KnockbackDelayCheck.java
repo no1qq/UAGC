@@ -47,6 +47,11 @@ public final class KnockbackDelayCheck implements Check<MovementEvent, Knockback
     }
 
     @Override
+    public boolean handlesIdleTicks() {
+        return true;
+    }
+
+    @Override
     public CheckResult inspect(CheckContext context, MovementEvent event, State state) {
         MovementSnapshot snapshot = event.snapshot();
         PlayerData player = context.player();

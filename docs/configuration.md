@@ -6,6 +6,17 @@ Reload rebuilds the configuration records and pushes them into the live services
 punishment rules, alert formats, freeze messages and confidence settings all take effect immediately.
 Registered checks themselves are not re created, so adding a new check still requires a restart.
 
+## config-version
+
+The file carries a `config-version` at the top. When a UAGC release changes what a check reads or how
+it is tuned, that number goes up.
+
+Bukkit never touches a `config.yml` that already exists, so an old file silently kept old values for
+every option a new release retuned, and the new defaults never reached the server. On startup UAGC now
+compares the two: if the file is older, it is renamed to `config-v<old>-<timestamp>.yml`, fresh defaults
+are written, and a warning names the backup. Nothing is lost, but anything you had customised has to be
+copied back out of that file by hand.
+
 ## general
 
 | Key | Default | Meaning |
@@ -201,7 +212,7 @@ checks:
 | `alert-threshold` | violation level at which staff are alerted |
 | `setback-enabled` | whether the check may request a setback |
 | `setback-threshold` | violation level at which setbacks begin |
-| `cancel-enabled` | reserved for checks that cancel the triggering action |
+| `cancel-enabled` | reserved, checks that cancel the action they caught do it through their own `deny` option |
 | `options` | check specific values, documented in [Checks](checks.md) |
 
 A missing or malformed check section falls back to built in defaults and logs a warning rather than

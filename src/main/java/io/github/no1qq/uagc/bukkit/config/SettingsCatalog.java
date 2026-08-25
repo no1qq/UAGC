@@ -82,6 +82,8 @@ public final class SettingsCatalog {
         CATEGORIES.put("inventory", "inventory check");
         CATEGORIES.put("protocol", "protocol check");
 
+        path("config-version", "config version",
+                "Which UAGC wrote this file, do not edit.");
         path("general.enabled", "anti cheat enabled",
                 "Turns every check on or off at once.");
         path("general.bypass-refresh-interval-ticks", "bypass refresh interval",
@@ -375,6 +377,23 @@ public final class SettingsCatalog {
                 "How hard sprinting or sneaking at a screen counts.");
         option("inventory_move.session-gap-ticks", "session gap",
                 "Quiet ticks that end an inventory session.");
+
+        option("screen_move.check-sprinting", "catch sprinting",
+                "A screen releases the sprint key, so sprinting is impossible.");
+        option("screen_move.settle-ticks", "settle ticks",
+                "Ticks after the screen opens before movement is judged.");
+        option("screen_move.knockback-grace-ticks", "knockback grace",
+                "Ticks after knockback where nothing is judged.");
+        option("screen_move.tolerance", "speed tolerance",
+                "Blocks per tick of slack on the coasting curve.");
+        option("screen_move.ground-friction", "ground friction",
+                "How fast an unsteered player slows on the ground.");
+        option("screen_move.air-friction", "air friction",
+                "How fast an unsteered player slows in the air.");
+        option("screen_move.required-streak", "required streak",
+                "Ticks of steering in a row needed before flagging.");
+        option("screen_move.state-severity", "sprint severity",
+                "How hard sprinting with a screen open counts.");
 
         option("silent_switch.maximum-return-ticks", "return window",
                 "Ticks in which the held slot must snap back.");

@@ -9,6 +9,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerItemHeldEvent;
@@ -28,8 +29,25 @@ public final class InventoryListener implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onOpen(InventoryOpenEvent event) {
-        if (event.getPlayer() instanceof Player player) {
-            openedTicks.put(player.getUniqueId(), runtime.server().currentTick());
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        long tick = runtime.server().currentTick();
+        openedTicks.put(player.getUniqueId(), tick);
+        PlayerData data = runtime.players().get(player.getUniqueId());
+        if (data != null) {
+            data.interaction().openScreen(tick);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onClose(InventoryCloseEvent event) {
+        if (!(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        PlayerData data = runtime.players().get(player.getUniqueId());
+        if (data != null) {
+            data.interaction().closeScreen();
         }
     }
 

@@ -9,6 +9,7 @@ import io.github.no1qq.uagc.engine.movement.Rotation;
 import io.github.no1qq.uagc.engine.movement.Vec3;
 import io.github.no1qq.uagc.engine.player.PlayerData;
 import io.github.no1qq.uagc.engine.util.RingBuffer;
+import io.papermc.paper.event.player.PrePlayerAttackEntityEvent;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -32,25 +33,27 @@ public final class CombatListener implements Listener {
         this.runtime = runtime;
     }
 
-    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
-        long tick = runtime.server().currentTick();
-
-        if (event.getEntity() instanceof Player victim) {
-            PlayerData victimData = runtime.players().get(victim.getUniqueId());
-            if (victimData != null) {
-                victimData.combat().recordDamageTaken(tick);
-            }
-        }
-        if (!(event.getDamager() instanceof Player attacker)) {
+        if (!(event.getEntity() instanceof Player victim)) {
             return;
         }
+        PlayerData victimData = runtime.players().get(victim.getUniqueId());
+        if (victimData != null) {
+            victimData.combat().recordDamageTaken(runtime.server().currentTick());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onAttack(PrePlayerAttackEntityEvent event) {
+        Player attacker = event.getPlayer();
         PlayerData data = runtime.players().get(attacker.getUniqueId());
         if (data == null) {
             return;
         }
 
-        Entity target = event.getEntity();
+        long tick = runtime.server().currentTick();
+        Entity target = event.getAttacked();
         long millis = System.currentTimeMillis();
         data.combat().recordAttack(target.getUniqueId(), tick, millis);
 

@@ -1,3 +1,5 @@
+config-version: 2
+
 general:
   enabled: true
   bypass-refresh-interval-ticks: 60
@@ -329,6 +331,24 @@ checks:
         required-clicks: 1
         buffer-decay: 0.5
         session-gap-ticks: 40.0
+        state-severity: 1.0
+        severity-scale: 0.06
+
+    screen_move:
+      enabled: true
+      violation-increment: 2.0
+      decay-per-tick: 0.01
+      max-violation-level: 200.0
+      minimum-confidence: 0.45
+      alert-threshold: 2.0
+      options:
+        check-sprinting: true
+        settle-ticks: 4.0
+        knockback-grace-ticks: 20.0
+        tolerance: 0.003
+        ground-friction: 0.546
+        air-friction: 0.91
+        required-streak: 3
         state-severity: 1.0
         severity-scale: 0.06
 

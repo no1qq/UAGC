@@ -59,7 +59,7 @@ public final class InventoryMoveCheck implements Check<InventoryClickCheckEvent,
         }
 
         MovementSnapshot last = player.movement().last();
-        if (last == null || !last.isFinite() || tick - last.tick() > 2L || isUnmeasurable(last)) {
+        if (last == null || !last.isFinite() || tick - last.tick() > 2L || isUnsteerable(last)) {
             return CheckResult.passed();
         }
         if (player.velocity().appliedWithin(tick, (long) context.config().option("knockback-grace-ticks", 20.0D))) {
@@ -123,9 +123,13 @@ public final class InventoryMoveCheck implements Check<InventoryClickCheckEvent,
         if (current.tick() - previous.tick() != 1L || tick - current.tick() > 2L) {
             return 0.0D;
         }
-        if (isUnmeasurable(current) || isUnmeasurable(previous)) {
+        if (isUnsteerable(current) || isUnsteerable(previous)) {
             return 0.0D;
         }
+        return drive(context, current, previous);
+    }
+
+    static double drive(CheckContext context, MovementSnapshot current, MovementSnapshot previous) {
         double before = previous.horizontalDistance();
         double now = current.horizontalDistance();
         double friction = current.surface().solidBelow()
@@ -135,7 +139,7 @@ public final class InventoryMoveCheck implements Check<InventoryClickCheckEvent,
         return Math.max(0.0D, now - allowed);
     }
 
-    private boolean isUnmeasurable(MovementSnapshot snapshot) {
+    static boolean isUnsteerable(MovementSnapshot snapshot) {
         return snapshot.activity().hasAlternateMovement()
                 || snapshot.activity().allowFlight()
                 || snapshot.activity().gameMode().allowsFlight()

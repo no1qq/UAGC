@@ -1,6 +1,7 @@
 package io.github.no1qq.uagc.engine.check;
 
 import io.github.no1qq.uagc.engine.alert.AlertService;
+import io.github.no1qq.uagc.engine.check.event.MovementEvent;
 import io.github.no1qq.uagc.engine.config.CheckConfig;
 import io.github.no1qq.uagc.engine.config.UagcConfig;
 import io.github.no1qq.uagc.engine.evidence.EvidenceEntry;
@@ -106,6 +107,9 @@ public final class CheckEngine {
         }
         if (!registered.check().ignoresExemptions()
                 && player.exemptions().isCategoryExempt(definition.category())) {
+            return false;
+        }
+        if (event instanceof MovementEvent movement && movement.idle() && !registered.check().handlesIdleTicks()) {
             return false;
         }
 

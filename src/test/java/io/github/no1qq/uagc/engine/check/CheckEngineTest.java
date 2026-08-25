@@ -84,6 +84,37 @@ class CheckEngineTest {
     }
 
     @Test
+    void anIdleTickOnlyReachesTheChecksThatAskedForIt() {
+        EngineHarness harness = new EngineHarness(UagcConfig.defaults(),
+                new StubChecks.AlwaysFlags("stub", 1.0D, false));
+        PlayerData player = harness.addPlayer("tester");
+
+        for (long tick = 1L; tick <= 5L; tick++) {
+            harness.clock().setTick(tick);
+            harness.process(player, new MovementEvent(snapshot(tick), true));
+        }
+
+        assertEquals(null, player.violationsIfPresent(0),
+                "a movement check must never judge a tick the player never sent");
+    }
+
+    @Test
+    void aCheckThatWatchesIdleTicksStillSeesThem() {
+        EngineHarness harness = new EngineHarness(UagcConfig.defaults(),
+                new StubChecks.AlwaysFlags("stub", 1.0D, false).watchingIdleTicks());
+        PlayerData player = harness.addPlayer("tester");
+
+        for (long tick = 1L; tick <= 5L; tick++) {
+            harness.clock().setTick(tick);
+            harness.process(player, new MovementEvent(snapshot(tick), true));
+        }
+
+        ViolationTracker tracker = player.violationsIfPresent(0);
+        assertNotNull(tracker, "standing perfectly still is exactly when a knockback check must run");
+        assertEquals(5, tracker.flagCount());
+    }
+
+    @Test
     void flaggingAccumulatesViolationLevel() {
         EngineHarness harness = new EngineHarness(UagcConfig.defaults(),
                 new StubChecks.AlwaysFlags("stub", 1.0D, false));

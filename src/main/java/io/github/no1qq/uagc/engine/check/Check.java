@@ -15,4 +15,8 @@ public interface Check<E extends CheckEvent, S> {
     default boolean ignoresExemptions() {
         return false;
     }
+
+    default boolean handlesIdleTicks() {
+        return false;
+    }
 }

@@ -170,6 +170,12 @@ These are real and worth stating plainly.
   still walking does not move the item. This is why `CombatListener` and the inventory click handler
   run at `HIGH` rather than `MONITOR`, since a MONITOR handler cannot cancel anything. They are the
   only places UAGC touches an event instead of only reading it.
+- **A tick with no movement packet is still a tick.** Paper fires no move event when neither the
+  position nor the rotation changed, so a player standing perfectly still is invisible to a check that
+  only runs on movement. The plugin's own tick task samples those players where they stand and feeds a
+  movement event marked `idle`. Only checks that return true from `Check.handlesIdleTicks` see it,
+  because a synthetic tick is meaningless to a speed or a gravity model but is exactly what a knockback
+  model needs.
 - **The console carries one kind of line.** While alerts are enabled and going to the console, that
   alert line is the only thing written; `log-violations-to-console` is the fallback for a console that
   has turned alerts off, not a second stream running beside them.

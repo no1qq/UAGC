@@ -17,11 +17,22 @@ public final class StubChecks {
         private final CheckDefinition definition;
         private final double severity;
         private final boolean setback;
+        private boolean idleAware;
 
         public AlwaysFlags(String id, double severity, boolean setback) {
             this.definition = CheckDefinition.builder(id, id, CheckCategory.MOVEMENT).build();
             this.severity = severity;
             this.setback = setback;
+        }
+
+        public AlwaysFlags watchingIdleTicks() {
+            this.idleAware = true;
+            return this;
+        }
+
+        @Override
+        public boolean handlesIdleTicks() {
+            return idleAware;
         }
 
         @Override

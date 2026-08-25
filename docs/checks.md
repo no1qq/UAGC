@@ -198,6 +198,12 @@ because the larger of the two wins.
 A flagged hit is cancelled rather than merely reported. The damage never lands, so reach buys nothing
 even before staff read the alert. Set the `deny` option to false to go back to reporting only.
 
+The check runs on the attack itself, not on the damage that follows it. Paper's `PrePlayerAttackEntityEvent`
+fires for every entity a player swings at, whether or not any damage is dealt, so a boat, a minecart, an
+armour stand, an invulnerable entity or anything hit in creative is measured exactly like a mob. The
+damage event alone missed all of those, which was a free bypass for anything that did not take damage
+the ordinary way.
+
 The target is rewound, but only by as many ticks as the attacker's ping actually pays for: one tick per
 50 ms, rounded up, capped at `maximum-rewind-ticks`. A player on a local connection gets no rewind at
 all, so the measurement is against where the target actually is. This is the part that used to make the
@@ -277,6 +283,13 @@ travelled `minimum-ratio` of it, so a clean fight costs nothing to watch.
 `required-samples` knockbacks have to come up short before anything is reported, and the count is a
 buffer rather than a streak: a hit taken properly pays back `buffer-decay` of it instead of wiping it.
 A module that absorbs every second hit accumulates just the same, only slower.
+
+The measurement no longer depends on the player sending movement packets. Paper only reports a move when
+the position or the rotation actually changed, so a player who takes a hit and does not budge produces
+no events at all, and a check driven by movement never runs. That is precisely the module that takes no
+knockback. UAGC now fills those gaps itself: every tick a player sends nothing, the plugin samples them
+where they stand and feeds that to the checks that asked for it. Standing perfectly still through a
+knockback is now the loudest case rather than the quietest.
 
 One hit is enough on its own when it is unambiguous. A player who travelled less than `instant-ratio`
 of what was expected, watched for `instant-observation-ticks` plus their latency, is flagged without
@@ -406,6 +419,38 @@ A flagged click is cancelled, so the item never moves. Set `deny` to false to re
 | `buffer-decay` | 0.5 | how much of that a clean click pays back |
 | `session-gap-ticks` | 40.0 | quiet ticks that end the session |
 | `state-severity` | 1.0 | severity of a sprinting or sneaking click |
+| `severity-scale` | 0.06 | excess speed mapping to full severity |
+
+### screen_move
+
+The other half of `inventory_move`, and the one that queue mode cannot dodge.
+
+Cheat clients offer more than one way to move with a screen open. The plain one sends the clicks while
+you walk, which `inventory_move` catches at the click. A queued one holds the clicks back and releases
+them at a moment when the player looks stationary, so the click itself carries no evidence at all.
+
+This check does not look at clicks. From the tick a container screen opens to the tick it closes, the
+player is not allowed to be steering, because the client is not polling input at all during that time.
+Every tick is measured against the same friction curve `inventory_move` uses, and the sprint flag counts
+on its own. Whether the clicks arrive during, after, or never is beside the point.
+
+It only covers screens the server is told about, which is every container. The survival inventory opened
+with the E key is never announced to the server, so that one is still `inventory_move` territory.
+
+`settle-ticks` plus the player's latency are given at the start, because the client is still moving under
+its own momentum when the screen appears and the stop packet has not arrived yet. Everything that can
+move a player who is touching nothing skips the tick, the same list the rest of the inventory checks use.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `check-sprinting` | true | treat the sprint flag as proof on its own |
+| `settle-ticks` | 4.0 | ticks after opening, plus latency, that are ignored |
+| `knockback-grace-ticks` | 20.0 | ticks after server velocity where nothing is judged |
+| `tolerance` | 0.003 | blocks per tick of slack on the coasting curve |
+| `ground-friction` | 0.546 | share of last tick's distance an unsteered player keeps on ground |
+| `air-friction` | 0.91 | the same while airborne |
+| `required-streak` | 3 | ticks of steering in a row before flagging |
+| `state-severity` | 1.0 | severity of a sprinting tick |
 | `severity-scale` | 0.06 | excess speed mapping to full severity |
 
 ### silent_switch
