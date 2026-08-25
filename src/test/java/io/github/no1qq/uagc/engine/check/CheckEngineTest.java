@@ -2,6 +2,7 @@ package io.github.no1qq.uagc.engine.check;
 
 import io.github.no1qq.uagc.engine.check.event.MovementEvent;
 import io.github.no1qq.uagc.engine.config.CheckConfig;
+import io.github.no1qq.uagc.engine.config.GeneralSettings;
 import io.github.no1qq.uagc.engine.config.UagcConfig;
 import io.github.no1qq.uagc.engine.exemption.ExemptionType;
 import io.github.no1qq.uagc.engine.movement.MovementSnapshot;
@@ -33,6 +34,32 @@ class CheckEngineTest {
                 .tick(tick)
                 .surface(Surfaces.ground())
                 .build();
+    }
+
+    @Test
+    void theConsoleNeverSeesAViolationAndItsAlertForTheSameFlag() {
+        UagcConfig base = UagcConfig.defaults();
+        GeneralSettings general = new GeneralSettings(true, base.general().bypassRefreshIntervalTicks(),
+                base.general().lagSpikeThresholdMillis(), base.general().exemptOnLagSpike(),
+                base.general().maxCheckFailuresBeforeDisable(), base.general().logPunishments(), true);
+        UagcConfig config = new UagcConfig(general, base.playerData(), base.confidence(), base.alerts(),
+                base.freeze(), base.punishments(), base.debug(), base.checks());
+
+        EngineHarness harness = new EngineHarness(config, new StubChecks.AlwaysFlags("stub", 1.0D, false));
+        PlayerData player = harness.addPlayer("tester");
+
+        for (long tick = 1L; tick <= 6L; tick++) {
+            harness.clock().setTick(tick);
+            harness.process(player, new MovementEvent(snapshot(tick)));
+        }
+
+        int alerts = harness.messages().consoleAlerts().size();
+        long violationLines = harness.server().infoMessages().stream()
+                .filter(line -> line.startsWith("violation "))
+                .count();
+
+        assertTrue(alerts > 0, "the flag above the threshold must reach the console as an alert");
+        assertEquals(3L, violationLines, "only the flags below the alert threshold get the plain line");
     }
 
     @Test

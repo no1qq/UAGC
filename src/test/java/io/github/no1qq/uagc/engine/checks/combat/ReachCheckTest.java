@@ -1,5 +1,6 @@
 package io.github.no1qq.uagc.engine.checks.combat;
 
+import io.github.no1qq.uagc.engine.check.CheckResult;
 import io.github.no1qq.uagc.engine.check.EventCheckHarness;
 import io.github.no1qq.uagc.engine.check.event.AttackEvent;
 import io.github.no1qq.uagc.engine.check.event.TargetSample;
@@ -56,12 +57,26 @@ class ReachCheckTest {
     }
 
     @Test
-    void aSingleDesyncedHitIsNeverFlagged() {
+    void aSingleHitPastThreeBlocksIsFlagged() {
         EventCheckHarness<AttackEvent, ReachCheck.State> harness = harness();
         harness.feed(attackAt(3.4D, AttributeSample.vanilla(), 60, List.of()));
-        harness.feed(attackAt(2.6D, AttributeSample.vanilla(), 60, List.of()));
-        harness.feed(attackAt(3.4D, AttributeSample.vanilla(), 60, List.of()));
-        assertFalse(harness.flagged(), "one stretched hit between normal ones is ordinary desync");
+        assertTrue(harness.flagged(), "the first hit past the interaction range is already reach");
+    }
+
+    @Test
+    void aHitDeniedByTheCheckDoesNotLand() {
+        EventCheckHarness<AttackEvent, ReachCheck.State> harness = harness();
+        CheckResult result = harness.feed(attackAt(3.4D, AttributeSample.vanilla(), 60, List.of()));
+        assertTrue(result.requestDeny(), "a hit out of range must not do damage");
+    }
+
+    @Test
+    void aHitInsideTheRangeIsNeverFlagged() {
+        EventCheckHarness<AttackEvent, ReachCheck.State> harness = harness();
+        for (int hit = 0; hit < 6; hit++) {
+            harness.feed(attackAt(3.29D, AttributeSample.vanilla(), 120, List.of(), Vec3.ZERO, 1L + hit * 10L));
+        }
+        assertFalse(harness.flagged(), "three blocks to the hitbox surface is a legitimate vanilla hit");
     }
 
     @Test

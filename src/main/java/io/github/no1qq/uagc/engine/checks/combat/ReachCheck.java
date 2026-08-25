@@ -70,14 +70,17 @@ public final class ReachCheck implements Check<AttackEvent, ReachCheck.State> {
                 ? attributes.entityInteractionRange()
                 : AttributeSample.VANILLA_ENTITY_INTERACTION_RANGE;
         double scale = attributes.scale() > 0.0D ? attributes.scale() : 1.0D;
-        double allowed = range * scale;
+        double hardLimit = context.config().option("hard-limit",
+                AttributeSample.VANILLA_ENTITY_INTERACTION_RANGE);
+        double allowed = Math.max(range * scale, hardLimit);
 
         int rewindTicks = rewindTicks(context, event);
         double distance = target.minimumDistanceFrom(event.eyePosition(), rewindTicks);
 
-        double tolerance = context.config().option("tolerance", 0.06D)
-                + Math.min(event.ping() / 100.0D, 6.0D) * context.config().option("latency-tolerance", 0.03D)
-                + attackerMotionAllowance(context);
+        double pingFactor = Math.min(event.ping() / 100.0D, 6.0D);
+        double tolerance = context.config().option("tolerance", 0.03D)
+                + pingFactor * context.config().option("latency-tolerance", 0.02D)
+                + attackerMotionAllowance(context, pingFactor);
         double limit = allowed + tolerance;
 
         if (context.isDebugWatched()) {
@@ -94,7 +97,7 @@ public final class ReachCheck implements Check<AttackEvent, ReachCheck.State> {
             state.worstDistance = distance;
             state.worstLimit = limit;
         }
-        int requiredStreak = context.config().optionInt("required-streak", 3);
+        int requiredStreak = context.config().optionInt("required-streak", 1);
         if (state.consecutive < requiredStreak) {
             return CheckResult.passed();
         }
@@ -104,8 +107,9 @@ public final class ReachCheck implements Check<AttackEvent, ReachCheck.State> {
         state.reset();
 
         double severity = ConfidenceModel.severity(reported, reportedLimit,
-                context.config().option("severity-scale", 1.2D));
-        return CheckResult.flag(severity, "attack distance exceeded the attacker interaction range")
+                context.config().option("severity-scale", 0.5D));
+        CheckResult.Builder flag = CheckResult
+                .flag(severity, "attack distance exceeded the attacker interaction range")
                 .with("distance", reported)
                 .with("allowed", reportedLimit)
                 .with("attribute_range", range)
@@ -113,8 +117,11 @@ public final class ReachCheck implements Check<AttackEvent, ReachCheck.State> {
                 .with("target", target.type())
                 .with("target_samples", target.recentPositions().size())
                 .with("rewind_ticks", rewindTicks)
-                .with("ping", event.ping())
-                .build();
+                .with("ping", event.ping());
+        if (context.config().optionBoolean("deny", true)) {
+            flag.deny();
+        }
+        return flag.build();
     }
 
     private int rewindTicks(CheckContext context, AttackEvent event) {
@@ -124,12 +131,12 @@ public final class ReachCheck implements Check<AttackEvent, ReachCheck.State> {
         return (int) Math.max(minimum, Math.min(maximum, fromPing));
     }
 
-    private double attackerMotionAllowance(CheckContext context) {
+    private double attackerMotionAllowance(CheckContext context, double pingFactor) {
         MovementSnapshot last = context.player().movement().last();
         if (last == null || !last.isFinite()) {
             return 0.0D;
         }
         double cap = context.config().option("attacker-motion-cap", 0.4D);
-        return Math.min(last.delta().length(), cap);
+        return Math.min(last.delta().length(), cap) * Math.min(pingFactor, 1.0D);
     }
 }

@@ -41,11 +41,13 @@ public final class BlockReachCheck implements Check<BlockPlaceCheckEvent, Void> 
                 ? attributes.blockInteractionRange()
                 : AttributeSample.VANILLA_BLOCK_INTERACTION_RANGE;
         double scale = attributes.scale() > 0.0D ? attributes.scale() : 1.0D;
-        double allowed = range * scale;
+        double hardLimit = context.config().option("hard-limit",
+                AttributeSample.VANILLA_BLOCK_INTERACTION_RANGE);
+        double allowed = Math.max(range * scale, hardLimit);
 
         double distance = distanceToBlockSurface(eye, block);
-        double tolerance = context.config().option("tolerance", 0.1D)
-                + Math.min(event.ping() / 100.0D, 6.0D) * context.config().option("latency-tolerance", 0.04D);
+        double tolerance = context.config().option("tolerance", 0.05D)
+                + Math.min(event.ping() / 100.0D, 6.0D) * context.config().option("latency-tolerance", 0.02D);
         double limit = allowed + tolerance;
 
         if (distance <= limit) {

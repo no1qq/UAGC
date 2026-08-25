@@ -15,6 +15,7 @@ public final class KnockbackModel {
         double peak;
         long responseTick = Long.MIN_VALUE;
         boolean broken;
+        int observed;
 
         public void complete() {
             appliedTick = Long.MIN_VALUE;
@@ -24,6 +25,7 @@ public final class KnockbackModel {
             peak = 0.0D;
             responseTick = Long.MIN_VALUE;
             broken = false;
+            observed = 0;
         }
 
         public void reset() {
@@ -55,6 +57,10 @@ public final class KnockbackModel {
             return responseTick;
         }
 
+        public int observedTicks() {
+            return observed;
+        }
+
         public double takenRatio() {
             return magnitude <= 0.0D ? 1.0D : peak / magnitude;
         }
@@ -63,7 +69,12 @@ public final class KnockbackModel {
     private KnockbackModel() {
     }
 
-    public static boolean beginIfNew(Session session, PlayerData player, double minimumMagnitude) {
+    public static boolean hasNewKnockback(Session session, PlayerData player) {
+        long applied = player.velocity().lastAppliedTick();
+        return applied != Long.MIN_VALUE && applied != session.sourceTick;
+    }
+
+    public static boolean begin(Session session, PlayerData player, double minimumMagnitude) {
         long applied = player.velocity().lastAppliedTick();
         if (applied == Long.MIN_VALUE || applied == session.sourceTick) {
             return false;
@@ -90,6 +101,7 @@ public final class KnockbackModel {
             session.broken = true;
             return;
         }
+        session.observed++;
         Vec3 delta = snapshot.delta();
         double along = delta.x() * session.directionX + delta.z() * session.directionZ;
         if (along > session.peak) {

@@ -16,7 +16,7 @@ Registered checks themselves are not re created, so adding a new check still req
 | `exempt-on-lag-spike` | `true` | grant a short exemption after a spike |
 | `max-check-failures-before-disable` | `12` | consecutive internal errors before a check is isolated |
 | `log-punishments` | `true` | write applied punishments to the server log |
-| `log-violations-to-console` | `false` | write every violation to the log, noisy, for debugging |
+| `log-violations-to-console` | `false` | write violations to the log, noisy, for debugging. A violation that alerts is left to the alert line so the console never carries the same flag twice |
 
 ## player-data
 

@@ -19,10 +19,15 @@ class VelocityCheckTest {
 
     private Vec3 knockbackBurst(MovementCheckHarness<VelocityCheck.State> harness,
                                 Vec3 start, long startTick, double taken) {
+        return knockbackBurst(harness, start, startTick, taken, 20);
+    }
+
+    private Vec3 knockbackBurst(MovementCheckHarness<VelocityCheck.State> harness,
+                                Vec3 start, long startTick, double taken, int ticks) {
         harness.player().velocity().record(new Vec3(KNOCKBACK, 0.4D, 0.0D), startTick, "damage");
         Vec3 position = start;
         double speed = KNOCKBACK * taken;
-        for (int offset = 0; offset < 20; offset++) {
+        for (int offset = 0; offset < ticks; offset++) {
             Vec3 next = new Vec3(position.x() + speed, position.y(), position.z());
             harness.feed(SnapshotBuilder.create()
                     .tick(startTick + offset)
@@ -34,6 +39,26 @@ class VelocityCheckTest {
             speed *= 0.91D;
         }
         return position;
+    }
+
+    @Test
+    void absorbedKnockbackIsCaughtWhenHitsComeQuickly() {
+        MovementCheckHarness<VelocityCheck.State> harness = harness();
+        Vec3 position = Vec3.ZERO;
+        for (int round = 0; round < 4; round++) {
+            position = knockbackBurst(harness, position, 1L + round * 5L, 0.0D, 5);
+        }
+        assertTrue(harness.flagged(), "a hit every five ticks must still be judged, that is normal combat");
+    }
+
+    @Test
+    void takingTheKnockbackIsNeverFlaggedWhenHitsComeQuickly() {
+        MovementCheckHarness<VelocityCheck.State> harness = harness();
+        Vec3 position = Vec3.ZERO;
+        for (int round = 0; round < 8; round++) {
+            position = knockbackBurst(harness, position, 1L + round * 5L, 1.0D, 5);
+        }
+        assertFalse(harness.flagged(), "quick hits that are all taken carry no evidence");
     }
 
     @Test

@@ -73,6 +73,16 @@ class KnockbackDelayCheckTest {
     }
 
     @Test
+    void aDelayHiddenBetweenCleanHitsIsStillFlagged() {
+        MovementCheckHarness<KnockbackDelayCheck.State> harness = harness();
+        Vec3 position = Vec3.ZERO;
+        for (int round = 0; round < 6; round++) {
+            position = hit(harness, position, 1L + round * 25L, round % 2 == 0 ? 6 : 1, 0);
+        }
+        assertTrue(harness.flagged(), "taking every second hit on time must not wipe the evidence");
+    }
+
+    @Test
     void oneLateHitIsNeverFlagged() {
         MovementCheckHarness<KnockbackDelayCheck.State> harness = harness();
         Vec3 position = Vec3.ZERO;

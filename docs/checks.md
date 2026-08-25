@@ -190,8 +190,13 @@ timer is worth having.
 ### reach
 
 Measures the distance from the attacker's eye to the target's bounding box and compares it against the
-attacker's own `ENTITY_INTERACTION_RANGE` attribute, scaled by the `SCALE` attribute. A server that
-grants extended reach through an attribute is respected automatically.
+attacker's own `ENTITY_INTERACTION_RANGE` attribute, scaled by the `SCALE` attribute, and never below
+`hard-limit`. Vanilla is three blocks and that is the floor: a hit measured past it is reach whatever
+the attributes say. A server that grants more through an attribute is still respected automatically,
+because the larger of the two wins.
+
+A flagged hit is cancelled rather than merely reported. The damage never lands, so reach buys nothing
+even before staff read the alert. Set the `deny` option to false to go back to reporting only.
 
 For player targets the minimum distance across their recent tracked positions is used, so a target who
 was closer a moment ago explains the measurement instead of producing a violation. Attackers in a
@@ -199,20 +204,24 @@ vehicle or riptiding are skipped because their positions desync.
 
 Mobs are not tracked that way, and the position the server holds for one is always a little ahead of
 where the client drew it when the click was sent. The target is therefore also rewound along its own
-velocity for up to `maximum-rewind-ticks`, scaled by the attacker's ping, and the attacker's own last
-tick of motion is added to the tolerance because the eye position is sampled after their move for that
-tick was applied. Both of those are ordinary desync on a vanilla hit, not evidence.
+velocity for up to `maximum-rewind-ticks`, scaled by the attacker's ping.
 
-Even then a single stretched hit means nothing, so `required-streak` consecutive attacks must all sit
-past the limit before anything is reported, and any hit inside the limit clears the streak. The worst
-distance in the streak is what gets reported.
+The attacker's own last tick of motion is added to the tolerance too, because the eye position is
+sampled after their move for that tick was applied, but only in proportion to their ping. A player on
+a local connection has nothing to desync, so they get none of that slack and the limit is the flat
+three blocks. The allowance grows to its full `attacker-motion-cap` at 100 ms and stops there.
+
+`required-streak` is one by default: a hit that is genuinely past the range is not something the
+tolerances left room for, so it is reported and cancelled immediately.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `tolerance` | 0.06 | absolute slack |
-| `latency-tolerance` | 0.03 | extra slack per 100 ms of ping |
-| `severity-scale` | 1.2 | excess distance mapping to full severity |
-| `required-streak` | 3 | consecutive attacks past the limit before flagging |
+| `hard-limit` | 3.0 | floor under the allowed distance, whatever the attribute says |
+| `deny` | true | cancel the hit instead of only reporting it |
+| `tolerance` | 0.03 | absolute slack |
+| `latency-tolerance` | 0.02 | extra slack per 100 ms of ping |
+| `severity-scale` | 0.5 | excess distance mapping to full severity |
+| `required-streak` | 1 | consecutive attacks past the limit before flagging |
 | `streak-window-ticks` | 60.0 | idle ticks between attacks that clear the streak |
 | `minimum-rewind-ticks` | 3 | target rewind applied at any ping |
 | `maximum-rewind-ticks` | 8 | cap on the ping scaled target rewind |
@@ -247,18 +256,28 @@ window the peak is compared against the magnitude that was sent.
 
 Everything that can legitimately eat knockback ends the measurement instead of counting against the
 player: a wall, a liquid, a ladder, a web, slime, honey, a vehicle, gliding, riptiding, flight, an
-unloaded chunk, a broken tick sequence, or a second velocity arriving on top of the first. Below
-`minimum-magnitude` nothing is judged at all, because a small nudge carries no evidence. On top of that
-`required-samples` separate knockbacks have to come up short in a row, and any hit taken properly clears
-the count.
+unloaded chunk or a broken tick sequence. Below `minimum-magnitude` nothing is judged at all, because a
+small nudge carries no evidence.
+
+A second knockback arriving on top of the first no longer throws the measurement away. In a real fight
+hits land every few ticks, which used to mean the window never elapsed and the whole check quietly
+never ran. The pending hit is judged first, as long as it was watched for `minimum-observation-ticks`,
+and only then does the new one start. A hit that is taken properly is settled the moment the player has
+travelled `minimum-ratio` of it, so a clean fight costs nothing to watch.
+
+`required-samples` knockbacks still have to come up short before anything is reported, but the count is
+a buffer rather than a streak: a hit taken properly pays back `buffer-decay` of it instead of wiping it.
+A module that absorbs every second hit accumulates just the same, only slower.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `minimum-magnitude` | 0.2 | horizontal velocity below which nothing is judged |
 | `minimum-ratio` | 0.45 | share of the knockback the player must actually travel |
 | `response-ratio` | 0.45 | share that counts as having started to move |
-| `window-ticks` | 10.0 | ticks watched after the velocity, plus the player's latency |
-| `required-samples` | 3 | knockbacks that came up short in a row before flagging |
+| `window-ticks` | 6.0 | ticks watched after the velocity, plus the player's latency |
+| `minimum-observation-ticks` | 2 | ticks a hit must be watched before a new one may end it |
+| `required-samples` | 2 | knockbacks that came up short before flagging |
+| `buffer-decay` | 0.5 | how much of that a properly taken hit pays back |
 | `severity-scale` | 0.35 | shortfall that maps to full severity |
 
 ### knockback_delay
@@ -270,7 +289,9 @@ module in the wild advertises this as a delay of 100 to 300 ms with an adjustabl
 The trick is telling that apart from ordinary latency, and latency is measurable. The check subtracts
 the player's full round trip time from the observed response, not half of it, which already hands them
 more slack than the network can honestly claim. Whatever is left over is time the client sat on the
-packet. Two of those in a row are needed before anything is reported.
+packet. Two of those are needed before anything is reported, and like `velocity` the count is a buffer:
+a knockback taken on time pays back `buffer-decay` of it rather than clearing it, so a module that only
+delays some of the hits still adds up.
 
 A hit that never lands at all is not this check's business, it belongs to `velocity`, so a knockback
 with no response is dropped rather than counted here.
@@ -280,8 +301,9 @@ with no response is dropped rather than counted here.
 | `minimum-magnitude` | 0.2 | horizontal velocity below which nothing is judged |
 | `response-ratio` | 0.45 | share of the knockback that counts as the response |
 | `window-ticks` | 12.0 | ticks watched before a knockback is treated as never taken |
-| `maximum-delay-ticks` | 3.0 | ticks past the round trip time that are still forgiven |
-| `required-samples` | 2 | delayed knockbacks in a row before flagging |
+| `maximum-delay-ticks` | 2.0 | ticks past the round trip time that are still forgiven |
+| `required-samples` | 2 | delayed knockbacks before flagging |
+| `buffer-decay` | 0.5 | how much of that a knockback taken on time pays back |
 | `severity-scale` | 4.0 | ticks of excess delay that map to full severity |
 
 Both of these sit in the combat category rather than movement on purpose. Knockback grants a movement
@@ -305,12 +327,14 @@ latency widens the allowance.
 ### block_reach
 
 The placement equivalent of `reach`, measured against `BLOCK_INTERACTION_RANGE` and the block surface
-rather than its centre.
+rather than its centre, and never below `hard-limit`. Vanilla is four and a half blocks and that is the
+floor, the same way three blocks is the floor for entities.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `tolerance` | 0.1 | absolute slack |
-| `latency-tolerance` | 0.04 | extra slack per 100 ms of ping |
+| `hard-limit` | 4.5 | floor under the allowed distance, whatever the attribute says |
+| `tolerance` | 0.05 | absolute slack |
+| `latency-tolerance` | 0.02 | extra slack per 100 ms of ping |
 | `severity-scale` | 1.5 | excess distance mapping to full severity |
 
 ### invalid_placement

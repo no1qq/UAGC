@@ -21,12 +21,12 @@ public final class VelocityCheck implements Check<MovementEvent, VelocityCheck.S
 
     public static final class State {
         final KnockbackModel.Session session = new KnockbackModel.Session();
-        int failures;
+        double failures;
         double worstRatio = 1.0D;
 
         void reset() {
             session.reset();
-            failures = 0;
+            failures = 0.0D;
             worstRatio = 1.0D;
         }
     }
@@ -54,9 +54,14 @@ public final class VelocityCheck implements Check<MovementEvent, VelocityCheck.S
 
         double minimumMagnitude = context.config().option("minimum-magnitude", 0.2D);
         double responseRatio = context.config().option("response-ratio", 0.45D);
+        int minimumObservation = context.config().optionInt("minimum-observation-ticks", 2);
 
-        if (KnockbackModel.beginIfNew(state.session, player, minimumMagnitude)) {
-            return CheckResult.passed();
+        if (KnockbackModel.hasNewKnockback(state.session, player)) {
+            CheckResult pending = state.session.isTracking() && state.session.observedTicks() >= minimumObservation
+                    ? judge(context, state)
+                    : CheckResult.passed();
+            KnockbackModel.begin(state.session, player, minimumMagnitude);
+            return pending;
         }
         if (!state.session.isTracking()) {
             return CheckResult.passed();
@@ -68,14 +73,32 @@ public final class VelocityCheck implements Check<MovementEvent, VelocityCheck.S
 
         KnockbackModel.observe(state.session, snapshot, tick, responseRatio);
 
-        long window = (long) context.config().option("window-ticks", 10.0D) + KnockbackModel.latencyTicks(player);
-        if (tick - state.session.appliedTick() < window) {
+        double minimumRatio = context.config().option("minimum-ratio", 0.45D);
+        if (!state.session.isBroken() && state.session.takenRatio() >= minimumRatio) {
+            state.session.complete();
+            reward(context, state);
             return CheckResult.passed();
         }
 
+        long window = (long) context.config().option("window-ticks", 6.0D) + KnockbackModel.latencyTicks(player);
+        if (state.session.observedTicks() < window) {
+            return CheckResult.passed();
+        }
+        return judge(context, state);
+    }
+
+    private void reward(CheckContext context, State state) {
+        state.failures = Math.max(0.0D, state.failures - context.config().option("buffer-decay", 0.5D));
+        if (state.failures <= 0.0D) {
+            state.worstRatio = 1.0D;
+        }
+    }
+
+    private CheckResult judge(CheckContext context, State state) {
         boolean broken = state.session.isBroken();
         double taken = state.session.takenRatio();
         double magnitude = state.session.magnitude();
+        int observed = state.session.observedTicks();
         state.session.complete();
 
         if (broken) {
@@ -83,27 +106,25 @@ public final class VelocityCheck implements Check<MovementEvent, VelocityCheck.S
         }
 
         if (context.isDebugWatched()) {
-            double reported = taken;
-            context.debug(() -> "velocity taken=" + reported + " of " + magnitude);
+            context.debug(() -> "velocity taken=" + taken + " of " + magnitude + " over " + observed + " ticks");
         }
 
         double minimumRatio = context.config().option("minimum-ratio", 0.45D);
         if (taken >= minimumRatio) {
-            state.failures = 0;
-            state.worstRatio = 1.0D;
+            reward(context, state);
             return CheckResult.passed();
         }
 
-        state.failures++;
+        state.failures += 1.0D;
         state.worstRatio = Math.min(state.worstRatio, taken);
-        int required = context.config().optionInt("required-samples", 3);
+        double required = context.config().option("required-samples", 2.0D);
         if (state.failures < required) {
             return CheckResult.passed();
         }
 
         double worst = state.worstRatio;
-        int failures = state.failures;
-        state.failures = 0;
+        double failures = state.failures;
+        state.failures = 0.0D;
         state.worstRatio = 1.0D;
 
         double severity = ConfidenceModel.severity(minimumRatio - worst, 0.0D,
@@ -112,6 +133,7 @@ public final class VelocityCheck implements Check<MovementEvent, VelocityCheck.S
                 .with("taken_ratio", worst)
                 .with("required_ratio", minimumRatio)
                 .with("magnitude", magnitude)
+                .with("observed_ticks", observed)
                 .with("samples", failures)
                 .build();
     }

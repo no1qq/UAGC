@@ -32,7 +32,7 @@ public final class CombatListener implements Listener {
         this.runtime = runtime;
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
         long tick = runtime.server().currentTick();
 
@@ -72,7 +72,9 @@ public final class CombatListener implements Listener {
                 attacker.isRiptiding(),
                 attacker.isInsideVehicle());
 
-        runtime.engine().process(data, attackEvent);
+        if (runtime.engine().process(data, attackEvent)) {
+            event.setCancelled(true);
+        }
     }
 
     private TargetSample buildTarget(Entity target, int attackerPing) {

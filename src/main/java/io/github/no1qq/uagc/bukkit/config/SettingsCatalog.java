@@ -242,6 +242,8 @@ public final class SettingsCatalog {
                 "Knockback smaller than this is ignored.");
         option("response-ratio", "response ratio",
                 "Share of the knockback that counts as taken.");
+        option("buffer-decay", "clean hit credit",
+                "How much of the evidence one clean hit pays back.");
 
         option("vertical_motion.tolerance", "motion tolerance",
                 "Blocks per tick of slack on the predicted fall.");
@@ -298,6 +300,10 @@ public final class SettingsCatalog {
         option("timer.maximum-latency-credit-millis", "latency credit",
                 "Most time a lagging connection may borrow, in ms.");
 
+        option("reach.hard-limit", "reach limit",
+                "Attacks past this many blocks are never allowed.");
+        option("reach.deny", "cancel the hit",
+                "A hit past the limit does no damage at all.");
         option("reach.tolerance", "reach tolerance",
                 "Blocks of slack on the server reach limit.");
         option("reach.streak-window-ticks", "streak window",
@@ -320,6 +326,8 @@ public final class SettingsCatalog {
                 "Share of the knockback the player must really take.");
         option("velocity.window-ticks", "response window",
                 "Ticks the player has to show the knockback.");
+        option("velocity.minimum-observation-ticks", "minimum observation",
+                "Ticks a hit must be watched for before it is judged.");
         option("velocity.required-samples", "required samples",
                 "Ignored knockbacks needed before flagging.");
 
@@ -335,6 +343,8 @@ public final class SettingsCatalog {
         option("fast_break.severity-scale-ratio", "severity scale",
                 "How hard breaking early counts against the expected time.");
 
+        option("block_reach.hard-limit", "reach limit",
+                "Blocks touched past this far away are never allowed.");
         option("block_reach.tolerance", "reach tolerance",
                 "Blocks of slack on the block interaction range.");
 

@@ -69,30 +69,32 @@ public final class CheckEngine {
         return confidenceModel;
     }
 
-    public void process(PlayerData player, CheckEvent event) {
+    public boolean process(PlayerData player, CheckEvent event) {
         UagcConfig current = config;
         if (!current.general().enabled() || player == null || event == null) {
-            return;
+            return false;
         }
         RegisteredCheck[] handlers = registry.handlersFor(event.getClass());
         if (handlers.length == 0) {
-            return;
+            return false;
         }
         ServerConditions conditions = server.conditions();
         CheckContext context = new CheckContext(player, conditions, event.tick(), event.timeMillis(), debugSink, supportQuery);
+        boolean denied = false;
         for (RegisteredCheck registered : handlers) {
-            evaluate(registered, context, player, event, conditions, current);
+            denied |= evaluate(registered, context, player, event, conditions, current);
         }
+        return denied;
     }
 
-    private void evaluate(RegisteredCheck registered,
-                          CheckContext context,
-                          PlayerData player,
-                          CheckEvent event,
-                          ServerConditions conditions,
-                          UagcConfig current) {
+    private boolean evaluate(RegisteredCheck registered,
+                             CheckContext context,
+                             PlayerData player,
+                             CheckEvent event,
+                             ServerConditions conditions,
+                             UagcConfig current) {
         if (!registered.isActive()) {
-            return;
+            return false;
         }
         CheckDefinition definition = registered.definition();
         CheckConfig checkConfig = registered.config();
@@ -100,11 +102,11 @@ public final class CheckEngine {
 
         boolean bypassed = player.bypass().isBypassed(definition.category(), registered.index(), definition.id(), tick);
         if (bypassed && !evaluateBypassedPlayers) {
-            return;
+            return false;
         }
         if (!registered.check().ignoresExemptions()
                 && player.exemptions().isCategoryExempt(definition.category())) {
-            return;
+            return false;
         }
 
         context.prepare(definition.id(), checkConfig);
@@ -115,13 +117,13 @@ public final class CheckEngine {
             registered.recordSuccess();
         } catch (Throwable throwable) {
             handleFailure(registered, throwable, current);
-            return;
+            return false;
         }
         if (result == null || !result.flagged()) {
-            return;
+            return false;
         }
         registered.recordFlag();
-        handleFlag(registered, player, event, conditions, checkConfig, result, bypassed, current);
+        return handleFlag(registered, player, event, conditions, checkConfig, result, bypassed, current);
     }
 
     @SuppressWarnings("unchecked")
@@ -157,14 +159,14 @@ public final class CheckEngine {
         }
     }
 
-    private void handleFlag(RegisteredCheck registered,
-                            PlayerData player,
-                            CheckEvent event,
-                            ServerConditions conditions,
-                            CheckConfig checkConfig,
-                            CheckResult result,
-                            boolean bypassed,
-                            UagcConfig current) {
+    private boolean handleFlag(RegisteredCheck registered,
+                               PlayerData player,
+                               CheckEvent event,
+                               ServerConditions conditions,
+                               CheckConfig checkConfig,
+                               CheckResult result,
+                               boolean bypassed,
+                               UagcConfig current) {
         CheckDefinition definition = registered.definition();
         long tick = event.tick();
         double reliability = confidenceModel.reliability(definition, player, conditions);
@@ -177,7 +179,7 @@ public final class CheckEngine {
                     .with("reliability", reliability)
                     .with("confidence", confidence)
                     .with("summary", result.summary()));
-            return;
+            return false;
         }
 
         if (bypassed) {
@@ -185,7 +187,7 @@ public final class CheckEngine {
                     .with("check", definition.id())
                     .with("confidence", confidence)
                     .with("summary", result.summary()));
-            return;
+            return false;
         }
 
         ViolationTracker tracker = player.violations(registered.index(), definition.id());
@@ -216,14 +218,15 @@ public final class CheckEngine {
 
         player.evidence().recordViolation(violation);
 
-        if (current.general().logViolationsToConsole()) {
-            server.info("violation " + player.name() + " " + violation.describe());
-        }
-
         double punishThreshold = punishments.punishThresholdFor(definition.id(), definition.category());
         boolean alerted = level >= checkConfig.alertThreshold();
         if (alerted) {
             alerts.dispatch(violation, punishThreshold, false);
+        }
+
+        boolean consoleOwnsIt = alerted && current.alerts().enabled() && alerts.consoleAlertsEnabled();
+        if (!consoleOwnsIt && current.general().logViolationsToConsole()) {
+            server.info("violation " + player.name() + " " + violation.describe());
         }
 
         if (result.requestSetback() && checkConfig.setbackEnabled() && level >= checkConfig.setbackThreshold()) {
@@ -233,6 +236,7 @@ public final class CheckEngine {
         }
 
         punishments.evaluate(player, violation, tracker.flagCount());
+        return result.requestDeny();
     }
 
     private boolean shouldFlagOnAlert(CheckDefinition definition, PlayerData player, long tick, UagcConfig current) {

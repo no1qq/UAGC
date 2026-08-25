@@ -21,12 +21,12 @@ public final class KnockbackDelayCheck implements Check<MovementEvent, Knockback
 
     public static final class State {
         final KnockbackModel.Session session = new KnockbackModel.Session();
-        int failures;
+        double failures;
         long worstDelay;
 
         void reset() {
             session.reset();
-            failures = 0;
+            failures = 0.0D;
             worstDelay = 0L;
         }
     }
@@ -55,7 +55,8 @@ public final class KnockbackDelayCheck implements Check<MovementEvent, Knockback
         double minimumMagnitude = context.config().option("minimum-magnitude", 0.2D);
         double responseRatio = context.config().option("response-ratio", 0.45D);
 
-        if (KnockbackModel.beginIfNew(state.session, player, minimumMagnitude)) {
+        if (KnockbackModel.hasNewKnockback(state.session, player)) {
+            KnockbackModel.begin(state.session, player, minimumMagnitude);
             return CheckResult.passed();
         }
         if (!state.session.isTracking()) {
@@ -85,7 +86,7 @@ public final class KnockbackDelayCheck implements Check<MovementEvent, Knockback
             return CheckResult.passed();
         }
 
-        long maximumDelay = (long) context.config().option("maximum-delay-ticks", 3.0D);
+        long maximumDelay = (long) context.config().option("maximum-delay-ticks", 2.0D);
 
         if (context.isDebugWatched()) {
             long reported = delay;
@@ -93,21 +94,23 @@ public final class KnockbackDelayCheck implements Check<MovementEvent, Knockback
         }
 
         if (delay <= maximumDelay) {
-            state.failures = 0;
-            state.worstDelay = 0L;
+            state.failures = Math.max(0.0D, state.failures - context.config().option("buffer-decay", 0.5D));
+            if (state.failures <= 0.0D) {
+                state.worstDelay = 0L;
+            }
             return CheckResult.passed();
         }
 
-        state.failures++;
+        state.failures += 1.0D;
         state.worstDelay = Math.max(state.worstDelay, delay);
-        int required = context.config().optionInt("required-samples", 2);
+        double required = context.config().option("required-samples", 2.0D);
         if (state.failures < required) {
             return CheckResult.passed();
         }
 
         long worst = state.worstDelay;
-        int failures = state.failures;
-        state.failures = 0;
+        double failures = state.failures;
+        state.failures = 0.0D;
         state.worstDelay = 0L;
 
         double severity = ConfidenceModel.severity(worst - maximumDelay, 0.0D,

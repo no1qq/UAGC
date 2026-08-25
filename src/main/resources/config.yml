@@ -217,10 +217,12 @@ checks:
       minimum-confidence: 0.4
       alert-threshold: 3.0
       options:
-        tolerance: 0.06
-        latency-tolerance: 0.03
-        severity-scale: 1.2
-        required-streak: 3
+        hard-limit: 3.0
+        deny: true
+        tolerance: 0.03
+        latency-tolerance: 0.02
+        severity-scale: 0.5
+        required-streak: 1
         streak-window-ticks: 60.0
         minimum-rewind-ticks: 3
         maximum-rewind-ticks: 8
@@ -249,8 +251,10 @@ checks:
         minimum-magnitude: 0.2
         minimum-ratio: 0.45
         response-ratio: 0.45
-        window-ticks: 10.0
-        required-samples: 3
+        window-ticks: 6.0
+        minimum-observation-ticks: 2
+        required-samples: 2
+        buffer-decay: 0.5
         severity-scale: 0.35
 
     knockback_delay:
@@ -264,8 +268,9 @@ checks:
         minimum-magnitude: 0.2
         response-ratio: 0.45
         window-ticks: 12.0
-        maximum-delay-ticks: 3.0
+        maximum-delay-ticks: 2.0
         required-samples: 2
+        buffer-decay: 0.5
         severity-scale: 4.0
 
   interaction:
@@ -288,8 +293,9 @@ checks:
       minimum-confidence: 0.45
       alert-threshold: 3.0
       options:
-        tolerance: 0.1
-        latency-tolerance: 0.04
+        hard-limit: 4.5
+        tolerance: 0.05
+        latency-tolerance: 0.02
         severity-scale: 1.5
 
     invalid_placement:
