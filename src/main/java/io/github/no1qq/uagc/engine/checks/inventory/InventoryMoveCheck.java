@@ -5,7 +5,6 @@ import io.github.no1qq.uagc.engine.check.CheckCategory;
 import io.github.no1qq.uagc.engine.check.CheckContext;
 import io.github.no1qq.uagc.engine.check.CheckDefinition;
 import io.github.no1qq.uagc.engine.check.CheckResult;
-import io.github.no1qq.uagc.engine.check.ConfidenceModel;
 import io.github.no1qq.uagc.engine.check.event.InventoryClickCheckEvent;
 import io.github.no1qq.uagc.engine.movement.MovementSnapshot;
 import io.github.no1qq.uagc.engine.player.PlayerData;
@@ -20,15 +19,11 @@ public final class InventoryMoveCheck implements Check<InventoryClickCheckEvent,
             .build();
 
     public static final class State {
-        long firstClickTick = Long.MIN_VALUE;
         long lastClickTick = Long.MIN_VALUE;
-        int clicks;
-        double worstSpeed;
+        double buffer;
 
         void reset() {
-            firstClickTick = Long.MIN_VALUE;
-            clicks = 0;
-            worstSpeed = 0.0D;
+            buffer = 0.0D;
         }
     }
 
@@ -52,7 +47,7 @@ public final class InventoryMoveCheck implements Check<InventoryClickCheckEvent,
         PlayerData player = context.player();
         long tick = event.tick();
 
-        long sessionGap = (long) context.config().option("session-gap-ticks", 20.0D);
+        long sessionGap = (long) context.config().option("session-gap-ticks", 40.0D);
         if (state.lastClickTick == Long.MIN_VALUE || tick - state.lastClickTick > sessionGap) {
             state.reset();
         }
@@ -63,86 +58,81 @@ public final class InventoryMoveCheck implements Check<InventoryClickCheckEvent,
             return CheckResult.passed();
         }
 
-        int samples = context.config().optionInt("sample-ticks", 3);
-        double speed = recentSpeed(player, tick, samples);
-        if (speed < 0.0D) {
-            state.reset();
+        MovementSnapshot last = player.movement().last();
+        if (last == null || !last.isFinite() || tick - last.tick() > 2L || isUnmeasurable(last)) {
+            return CheckResult.passed();
+        }
+        if (player.velocity().appliedWithin(tick, (long) context.config().option("knockback-grace-ticks", 20.0D))) {
             return CheckResult.passed();
         }
 
-        double maximumSpeed = context.config().option("maximum-speed", 0.08D);
+        boolean sprinting = event.sprinting() && context.config().optionBoolean("check-sprinting", true);
+        boolean sneaking = event.sneaking() && context.config().optionBoolean("check-sneaking", false);
+        double drive = drive(context, player, tick);
+        boolean driven = drive > 0.0D;
+
         if (context.isDebugWatched()) {
-            double reported = speed;
-            context.debug(() -> "inventory move speed=" + reported + " clicks=" + state.clicks);
+            context.debug(() -> "inventory click sprinting=" + sprinting + " sneaking=" + sneaking
+                    + " drive=" + drive);
         }
 
-        if (speed <= maximumSpeed) {
-            state.reset();
+        if (!sprinting && !sneaking && !driven) {
+            state.buffer = Math.max(0.0D, state.buffer - context.config().option("buffer-decay", 0.5D));
+            return CheckResult.passed();
+        }
+        if (driven && context.support().hasNearbyPusher(player.uuid())) {
             return CheckResult.passed();
         }
 
-        if (state.firstClickTick == Long.MIN_VALUE) {
-            state.firstClickTick = tick;
-        }
-        state.clicks++;
-        state.worstSpeed = Math.max(state.worstSpeed, speed);
-
-        int requiredClicks = context.config().optionInt("required-clicks", 4);
-        long minimumSpan = (long) context.config().option("minimum-span-ticks", 8.0D);
-        long span = tick - state.firstClickTick;
-        if (state.clicks < requiredClicks || span < minimumSpan) {
+        state.buffer += 1.0D;
+        double required = context.config().option("required-clicks", 1.0D);
+        if (state.buffer < required) {
             return CheckResult.passed();
         }
-        if (context.support().hasNearbyPusher(player.uuid())) {
-            state.reset();
-            return CheckResult.passed();
+        double buffer = state.buffer;
+        state.buffer = 0.0D;
+
+        String cause = sprinting ? "sprinting" : sneaking ? "sneaking" : "still being steered";
+        double severity = sprinting || sneaking
+                ? context.config().option("state-severity", 1.0D)
+                : Math.min(1.0D, drive / context.config().option("severity-scale", 0.06D));
+        CheckResult.Builder flag = CheckResult
+                .flag(severity, "was " + cause + " while clicking inside an inventory screen")
+                .with("cause", cause)
+                .with("sprinting", event.sprinting())
+                .with("sneaking", event.sneaking())
+                .with("drive", drive)
+                .with("clicks", buffer)
+                .with("inventory", event.inventoryType());
+        if (context.config().optionBoolean("deny", true)) {
+            flag.deny();
         }
-
-        double worst = state.worstSpeed;
-        int clicks = state.clicks;
-        state.reset();
-
-        double severity = ConfidenceModel.severityRatio(worst, maximumSpeed,
-                context.config().option("severity-scale", 1.5D));
-        return CheckResult.flag(severity, "kept moving while clicking inside an inventory screen")
-                .with("speed", worst)
-                .with("allowed", maximumSpeed)
-                .with("clicks", clicks)
-                .with("span_ticks", span)
-                .with("inventory", event.inventoryType())
-                .build();
+        return flag.build();
     }
 
-    private double recentSpeed(PlayerData player, long tick, int samples) {
+    private double drive(CheckContext context, PlayerData player, long tick) {
         RingBuffer<MovementSnapshot> history = player.movement().history();
-        if (history.size() < samples) {
-            return -1.0D;
+        if (history.size() < 2) {
+            return 0.0D;
         }
-        double total = 0.0D;
-        long expected = Long.MIN_VALUE;
-        for (int index = 0; index < samples; index++) {
-            MovementSnapshot snapshot = history.fromEnd(index);
-            if (snapshot == null || !snapshot.isFinite()) {
-                return -1.0D;
-            }
-            if (expected == Long.MIN_VALUE) {
-                if (tick - snapshot.tick() > 2L) {
-                    return -1.0D;
-                }
-                expected = snapshot.tick();
-            } else if (snapshot.tick() != expected) {
-                return -1.0D;
-            }
-            expected--;
-            if (isUnmeasurable(snapshot)) {
-                return -1.0D;
-            }
-            total += snapshot.horizontalDistance();
+        MovementSnapshot current = history.fromEnd(0);
+        MovementSnapshot previous = history.fromEnd(1);
+        if (current == null || previous == null || !current.isFinite() || !previous.isFinite()) {
+            return 0.0D;
         }
-        if (player.velocity().appliedWithin(tick, 20L)) {
-            return -1.0D;
+        if (current.tick() - previous.tick() != 1L || tick - current.tick() > 2L) {
+            return 0.0D;
         }
-        return total / samples;
+        if (isUnmeasurable(current) || isUnmeasurable(previous)) {
+            return 0.0D;
+        }
+        double before = previous.horizontalDistance();
+        double now = current.horizontalDistance();
+        double friction = current.surface().solidBelow()
+                ? context.config().option("ground-friction", 0.546D)
+                : context.config().option("air-friction", 0.91D);
+        double allowed = before * friction + context.config().option("tolerance", 0.003D);
+        return Math.max(0.0D, now - allowed);
     }
 
     private boolean isUnmeasurable(MovementSnapshot snapshot) {
@@ -158,6 +148,7 @@ public final class InventoryMoveCheck implements Check<InventoryClickCheckEvent,
                 || snapshot.surface().onBed()
                 || snapshot.surface().inBubbleColumn()
                 || snapshot.surface().insideSolid()
+                || snapshot.surface().collidingHorizontally()
                 || !snapshot.surface().chunkLoaded()
                 || snapshot.effects().hasLevitation();
     }

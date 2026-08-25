@@ -164,13 +164,15 @@ These are real and worth stating plainly.
   what makes dry run mode, cooldowns and manual staff actions share one code path.
 - **Setbacks teleport rather than cancel the move event.** Cancelling a movement at MONITOR priority
   fights with other plugins; a teleport to a known safe position is explicit and observable.
-- **An attack can be denied outright.** A check returns `CheckResult.deny()` alongside its flag,
-  `CheckEngine.process` reports that back to the listener, and the listener cancels the event. Only
-  `reach` uses it today: a hit past the interaction range does no damage at all. This is why
-  `CombatListener` runs at `HIGH` rather than `MONITOR`, since a MONITOR handler cannot cancel
-  anything. It is the one place UAGC touches an event instead of only reading it.
-- **The console never carries the same flag twice.** A violation that crosses its alert threshold is
-  reported by the alert line alone; `log-violations-to-console` fills in only for the flags below it.
+- **An action can be denied outright.** A check returns `CheckResult.deny()` alongside its flag,
+  `CheckEngine.process` reports that back to the listener, and the listener cancels the event. `reach`
+  and `inventory_move` use it: a hit past the interaction range does no damage, and a click made while
+  still walking does not move the item. This is why `CombatListener` and the inventory click handler
+  run at `HIGH` rather than `MONITOR`, since a MONITOR handler cannot cancel anything. They are the
+  only places UAGC touches an event instead of only reading it.
+- **The console carries one kind of line.** While alerts are enabled and going to the console, that
+  alert line is the only thing written; `log-violations-to-console` is the fallback for a console that
+  has turned alerts off, not a second stream running beside them.
 
 ## Why `Player.isOnGround` is used despite being deprecated
 

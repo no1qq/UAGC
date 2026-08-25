@@ -10,5 +10,7 @@ public record InventoryClickCheckEvent(
         String inventoryType,
         boolean ownInventory,
         boolean openedThisTick,
+        boolean sprinting,
+        boolean sneaking,
         int ping) implements CheckEvent {
 }

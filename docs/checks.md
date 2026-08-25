@@ -198,13 +198,16 @@ because the larger of the two wins.
 A flagged hit is cancelled rather than merely reported. The damage never lands, so reach buys nothing
 even before staff read the alert. Set the `deny` option to false to go back to reporting only.
 
-For player targets the minimum distance across their recent tracked positions is used, so a target who
-was closer a moment ago explains the measurement instead of producing a violation. Attackers in a
-vehicle or riptiding are skipped because their positions desync.
+The target is rewound, but only by as many ticks as the attacker's ping actually pays for: one tick per
+50 ms, rounded up, capped at `maximum-rewind-ticks`. A player on a local connection gets no rewind at
+all, so the measurement is against where the target actually is. This is the part that used to make the
+check useless. It searched the target's whole tracked history for whichever position happened to be
+closest, which handed a sprinting target's attacker most of a block of free reach no matter how good
+their connection was. Attackers in a vehicle or riptiding are still skipped because their own positions
+desync.
 
-Mobs are not tracked that way, and the position the server holds for one is always a little ahead of
-where the client drew it when the click was sent. The target is therefore also rewound along its own
-velocity for up to `maximum-rewind-ticks`, scaled by the attacker's ping.
+Both the recent positions and the target's own velocity are used for that rewind, so a mob walking away
+is still measured from where the client saw it.
 
 The attacker's own last tick of motion is added to the tolerance too, because the eye position is
 sampled after their move for that tick was applied, but only in proportion to their ping. A player on
@@ -218,12 +221,12 @@ tolerances left room for, so it is reported and cancelled immediately.
 | --- | --- | --- |
 | `hard-limit` | 3.0 | floor under the allowed distance, whatever the attribute says |
 | `deny` | true | cancel the hit instead of only reporting it |
-| `tolerance` | 0.03 | absolute slack |
+| `tolerance` | 0.0005 | absolute slack |
 | `latency-tolerance` | 0.02 | extra slack per 100 ms of ping |
 | `severity-scale` | 0.5 | excess distance mapping to full severity |
 | `required-streak` | 1 | consecutive attacks past the limit before flagging |
 | `streak-window-ticks` | 60.0 | idle ticks between attacks that clear the streak |
-| `minimum-rewind-ticks` | 3 | target rewind applied at any ping |
+| `minimum-rewind-ticks` | 0 | target rewind applied at any ping |
 | `maximum-rewind-ticks` | 8 | cap on the ping scaled target rewind |
 | `attacker-motion-cap` | 0.4 | cap on the attacker's own last tick of motion added as slack |
 
@@ -251,8 +254,14 @@ pushed off a ledge.
 
 The check records the horizontal velocity the server sent and the direction it pointed, then watches the
 following ticks and keeps the largest movement the player made *along that direction*. Movement across
-or against it is ignored, so running back in afterwards proves nothing either way. At the end of the
-window the peak is compared against the magnitude that was sent.
+or against it is ignored, so running back in afterwards proves nothing either way.
+
+What that peak is compared against is the vanilla knockback formula rather than the raw magnitude.
+Vanilla halves whatever horizontal velocity the player already had and adds the knockback on top, so a
+player sprinting into the hit is expected to travel less than the full magnitude and a player already
+running away is expected to travel more. Comparing against the magnitude alone let a cheat keep sprinting
+in the knockback direction and pass on its own momentum. The floor is half the magnitude, so the
+expectation can never be argued down to nothing.
 
 Everything that can legitimately eat knockback ends the measurement instead of counting against the
 player: a wall, a liquid, a ladder, a web, slime, honey, a vehicle, gliding, riptiding, flight, an
@@ -265,18 +274,26 @@ never ran. The pending hit is judged first, as long as it was watched for `minim
 and only then does the new one start. A hit that is taken properly is settled the moment the player has
 travelled `minimum-ratio` of it, so a clean fight costs nothing to watch.
 
-`required-samples` knockbacks still have to come up short before anything is reported, but the count is
-a buffer rather than a streak: a hit taken properly pays back `buffer-decay` of it instead of wiping it.
+`required-samples` knockbacks have to come up short before anything is reported, and the count is a
+buffer rather than a streak: a hit taken properly pays back `buffer-decay` of it instead of wiping it.
 A module that absorbs every second hit accumulates just the same, only slower.
+
+One hit is enough on its own when it is unambiguous. A player who travelled less than `instant-ratio`
+of what was expected, watched for `instant-observation-ticks` plus their latency, is flagged without
+waiting for a second sample. That is the zero percent module, and every legitimate way to absorb a
+knockback has already ended the measurement before this point. The observation floor is there so a
+single tick of packet ordering can never be mistaken for it.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `minimum-magnitude` | 0.2 | horizontal velocity below which nothing is judged |
-| `minimum-ratio` | 0.45 | share of the knockback the player must actually travel |
+| `minimum-ratio` | 0.45 | share of the expected travel the player must cover |
 | `response-ratio` | 0.45 | share that counts as having started to move |
-| `window-ticks` | 6.0 | ticks watched after the velocity, plus the player's latency |
-| `minimum-observation-ticks` | 2 | ticks a hit must be watched before a new one may end it |
+| `window-ticks` | 3.0 | ticks watched after the velocity, plus the player's latency |
+| `minimum-observation-ticks` | 1 | ticks a hit must be watched before a new one may end it |
 | `required-samples` | 2 | knockbacks that came up short before flagging |
+| `instant-ratio` | 0.15 | travel this far short flags on a single hit |
+| `instant-observation-ticks` | 2 | ticks of watching needed before one hit may flag alone |
 | `buffer-decay` | 0.5 | how much of that a properly taken hit pays back |
 | `severity-scale` | 0.35 | shortfall that maps to full severity |
 
@@ -301,7 +318,7 @@ with no response is dropped rather than counted here.
 | `minimum-magnitude` | 0.2 | horizontal velocity below which nothing is judged |
 | `response-ratio` | 0.45 | share of the knockback that counts as the response |
 | `window-ticks` | 12.0 | ticks watched before a knockback is treated as never taken |
-| `maximum-delay-ticks` | 2.0 | ticks past the round trip time that are still forgiven |
+| `maximum-delay-ticks` | 1.0 | ticks past the round trip time that are still forgiven |
 | `required-samples` | 2 | delayed knockbacks before flagging |
 | `buffer-decay` | 0.5 | how much of that a knockback taken on time pays back |
 | `severity-scale` | 4.0 | ticks of excess delay that map to full severity |
@@ -358,22 +375,38 @@ The signal is the click, because that is the only thing the server hears when a 
 inventory. Opening a container fires an event, opening the survival inventory with the E key sends
 nothing at all until the first click lands.
 
-Momentum is the whole difficulty. A click one tick after opening the screen at a sprint proves nothing,
-so a single burst is never enough: the check needs `required-clicks` clicks whose first and last are at
-least `minimum-span-ticks` apart, with the movement over the sampled ticks staying above
-`maximum-speed` the entire time. Ordinary friction has taken a player from sprint speed to nothing well
-inside that span. Slippery surfaces, liquid, climbables, webs, slime, honey, vehicles, gliding, recent
-server velocity and nearby pushers all end the session rather than counting toward it, because each of
-them can move a player who is not touching a key.
+Two things are checked at every click, and either one is enough on its own.
+
+The first is the sprint flag. Opening a screen releases the sprint key, so a player cannot still be
+sprinting by the time a click reaches the server. The sneak flag is the same idea but only on some
+client versions, which is why `check-sneaking` is off by default.
+
+The second is the movement itself, measured against friction rather than against a fixed speed. A
+player who is no longer steering keeps only `ground-friction` of last tick's distance, or `air-friction`
+while airborne. Anything above that came from input the client should not have been sending. This
+catches a walk as easily as a sprint, which a flat speed threshold never did.
+
+Momentum is therefore no longer a problem to work around: a player who opened the screen at full sprint
+is coasting, and coasting is exactly what the friction curve predicts. Slippery surfaces, liquid,
+climbables, webs, slime, honey, vehicles, gliding, wall contact, recent server velocity and nearby
+pushers all skip the measurement, because each of them can move a player who is not touching a key.
+
+A flagged click is cancelled, so the item never moves. Set `deny` to false to report only.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| `maximum-speed` | 0.08 | per tick speed a coasting player is past by the time the span is met |
-| `sample-ticks` | 3 | contiguous movement ticks averaged at each click |
-| `required-clicks` | 4 | clicks while moving before flagging |
-| `minimum-span-ticks` | 8.0 | ticks the first and last click must be apart |
-| `session-gap-ticks` | 20.0 | quiet ticks that end the session |
-| `severity-scale` | 1.5 | proportional excess mapping to full severity |
+| `check-sprinting` | true | treat the sprint flag at a click as proof on its own |
+| `check-sneaking` | false | the same for sneaking, version dependent, off by default |
+| `deny` | true | cancel the click instead of only reporting it |
+| `tolerance` | 0.003 | blocks per tick of slack on the coasting curve |
+| `ground-friction` | 0.546 | share of last tick's distance an unsteered player keeps on ground |
+| `air-friction` | 0.91 | the same while airborne |
+| `knockback-grace-ticks` | 20.0 | ticks after server velocity where nothing is judged |
+| `required-clicks` | 1 | clicks while moving before flagging |
+| `buffer-decay` | 0.5 | how much of that a clean click pays back |
+| `session-gap-ticks` | 40.0 | quiet ticks that end the session |
+| `state-severity` | 1.0 | severity of a sprinting or sneaking click |
+| `severity-scale` | 0.06 | excess speed mapping to full severity |
 
 ### silent_switch
 

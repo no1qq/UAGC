@@ -328,6 +328,10 @@ public final class SettingsCatalog {
                 "Ticks the player has to show the knockback.");
         option("velocity.minimum-observation-ticks", "minimum observation",
                 "Ticks a hit must be watched for before it is judged.");
+        option("velocity.instant-ratio", "instant flag ratio",
+                "Taking less than this share of a hit flags on its own.");
+        option("velocity.instant-observation-ticks", "instant observation",
+                "Ticks of watching needed before one hit may flag alone.");
         option("velocity.required-samples", "required samples",
                 "Ignored knockbacks needed before flagging.");
 
@@ -351,14 +355,24 @@ public final class SettingsCatalog {
         option("invalid_placement.severity", "severity",
                 "How hard an impossible placement counts.");
 
-        option("inventory_move.maximum-speed", "standstill speed",
-                "Speed that still counts as standing still.");
-        option("inventory_move.sample-ticks", "sample ticks",
-                "Ticks around a click that are inspected.");
+        option("inventory_move.check-sprinting", "catch sprinting",
+                "A screen releases the sprint key, so sprinting is impossible.");
+        option("inventory_move.check-sneaking", "catch sneaking",
+                "Only some versions release the sneak key, off by default.");
+        option("inventory_move.deny", "cancel the click",
+                "The click itself does not go through.");
+        option("inventory_move.tolerance", "speed tolerance",
+                "Blocks per tick of slack on the coasting curve.");
+        option("inventory_move.ground-friction", "ground friction",
+                "How fast an unsteered player slows on the ground.");
+        option("inventory_move.air-friction", "air friction",
+                "How fast an unsteered player slows in the air.");
+        option("inventory_move.knockback-grace-ticks", "knockback grace",
+                "Ticks after knockback where nothing is judged.");
         option("inventory_move.required-clicks", "required clicks",
                 "Clicks while moving needed before flagging.");
-        option("inventory_move.minimum-span-ticks", "minimum span",
-                "Ticks the clicking must go on for.");
+        option("inventory_move.state-severity", "sprint severity",
+                "How hard sprinting or sneaking at a screen counts.");
         option("inventory_move.session-gap-ticks", "session gap",
                 "Quiet ticks that end an inventory session.");
 

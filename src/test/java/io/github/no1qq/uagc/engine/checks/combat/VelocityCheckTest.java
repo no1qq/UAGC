@@ -92,12 +92,20 @@ class VelocityCheckTest {
     }
 
     @Test
-    void aSingleAbsorbedHitIsNeverFlagged() {
+    void oneHitThatWentNowhereIsAlreadyEnough() {
+        MovementCheckHarness<VelocityCheck.State> harness = harness();
+        knockbackBurst(harness, Vec3.ZERO, 1L, 0.0D);
+        assertTrue(harness.flagged(),
+                "every legitimate reason to absorb a knockback ends the measurement instead");
+    }
+
+    @Test
+    void aHitThatWasOnlyWatchedForATickIsNeverJudgedOnItsOwn() {
         MovementCheckHarness<VelocityCheck.State> harness = harness();
         Vec3 position = Vec3.ZERO;
-        position = knockbackBurst(harness, position, 1L, 0.0D);
-        knockbackBurst(harness, position, 21L, 1.0D);
-        assertFalse(harness.flagged(), "one hit that went nowhere can be a wall or a ladder");
+        position = knockbackBurst(harness, position, 1L, 0.0D, 1);
+        knockbackBurst(harness, position, 2L, 1.0D, 20);
+        assertFalse(harness.flagged(), "one tick is packet ordering, not evidence");
     }
 
     @Test

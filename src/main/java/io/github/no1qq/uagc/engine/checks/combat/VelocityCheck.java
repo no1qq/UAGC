@@ -54,11 +54,11 @@ public final class VelocityCheck implements Check<MovementEvent, VelocityCheck.S
 
         double minimumMagnitude = context.config().option("minimum-magnitude", 0.2D);
         double responseRatio = context.config().option("response-ratio", 0.45D);
-        int minimumObservation = context.config().optionInt("minimum-observation-ticks", 2);
+        int minimumObservation = context.config().optionInt("minimum-observation-ticks", 1);
 
         if (KnockbackModel.hasNewKnockback(state.session, player)) {
             CheckResult pending = state.session.isTracking() && state.session.observedTicks() >= minimumObservation
-                    ? judge(context, state)
+                    ? judge(context, state, KnockbackModel.latencyTicks(player))
                     : CheckResult.passed();
             KnockbackModel.begin(state.session, player, minimumMagnitude);
             return pending;
@@ -80,11 +80,11 @@ public final class VelocityCheck implements Check<MovementEvent, VelocityCheck.S
             return CheckResult.passed();
         }
 
-        long window = (long) context.config().option("window-ticks", 6.0D) + KnockbackModel.latencyTicks(player);
+        long window = (long) context.config().option("window-ticks", 3.0D) + KnockbackModel.latencyTicks(player);
         if (state.session.observedTicks() < window) {
             return CheckResult.passed();
         }
-        return judge(context, state);
+        return judge(context, state, KnockbackModel.latencyTicks(player));
     }
 
     private void reward(CheckContext context, State state) {
@@ -94,7 +94,7 @@ public final class VelocityCheck implements Check<MovementEvent, VelocityCheck.S
         }
     }
 
-    private CheckResult judge(CheckContext context, State state) {
+    private CheckResult judge(CheckContext context, State state, long latencyTicks) {
         boolean broken = state.session.isBroken();
         double taken = state.session.takenRatio();
         double magnitude = state.session.magnitude();
@@ -117,12 +117,16 @@ public final class VelocityCheck implements Check<MovementEvent, VelocityCheck.S
 
         state.failures += 1.0D;
         state.worstRatio = Math.min(state.worstRatio, taken);
+
+        double instantRatio = context.config().option("instant-ratio", 0.15D);
+        long instantObservation = context.config().optionInt("instant-observation-ticks", 2) + latencyTicks;
+        boolean certain = taken <= instantRatio && observed >= instantObservation;
         double required = context.config().option("required-samples", 2.0D);
-        if (state.failures < required) {
+        if (!certain && state.failures < required) {
             return CheckResult.passed();
         }
 
-        double worst = state.worstRatio;
+        double worst = Math.min(state.worstRatio, taken);
         double failures = state.failures;
         state.failures = 0.0D;
         state.worstRatio = 1.0D;

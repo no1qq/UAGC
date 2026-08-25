@@ -78,7 +78,7 @@ public final class ReachCheck implements Check<AttackEvent, ReachCheck.State> {
         double distance = target.minimumDistanceFrom(event.eyePosition(), rewindTicks);
 
         double pingFactor = Math.min(event.ping() / 100.0D, 6.0D);
-        double tolerance = context.config().option("tolerance", 0.03D)
+        double tolerance = context.config().option("tolerance", 0.0005D)
                 + pingFactor * context.config().option("latency-tolerance", 0.02D)
                 + attackerMotionAllowance(context, pingFactor);
         double limit = allowed + tolerance;
@@ -125,9 +125,9 @@ public final class ReachCheck implements Check<AttackEvent, ReachCheck.State> {
     }
 
     private int rewindTicks(CheckContext context, AttackEvent event) {
-        double minimum = context.config().option("minimum-rewind-ticks", 3.0D);
+        double minimum = context.config().option("minimum-rewind-ticks", 0.0D);
         double maximum = context.config().option("maximum-rewind-ticks", 8.0D);
-        double fromPing = event.ping() / 50.0D;
+        double fromPing = Math.ceil(event.ping() / 50.0D);
         return (int) Math.max(minimum, Math.min(maximum, fromPing));
     }
 

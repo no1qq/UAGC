@@ -33,7 +33,7 @@ public final class InventoryListener implements Listener {
         }
     }
 
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onClick(InventoryClickEvent event) {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
@@ -50,7 +50,7 @@ public final class InventoryListener implements Listener {
         long settle = 2L + Math.min(20L, Math.max(0, player.getPing()) / 50L);
         boolean openedThisTick = opened != null && tick - opened <= settle;
 
-        runtime.engine().process(data, new InventoryClickCheckEvent(
+        boolean denied = runtime.engine().process(data, new InventoryClickCheckEvent(
                 tick,
                 System.currentTimeMillis(),
                 event.getRawSlot(),
@@ -58,7 +58,12 @@ public final class InventoryListener implements Listener {
                 event.getInventory().getType().name(),
                 event.getView().getTopInventory().getType() == InventoryType.CRAFTING,
                 openedThisTick,
+                player.isSprinting(),
+                player.isSneaking(),
                 Math.max(0, player.getPing())));
+        if (denied) {
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

@@ -224,7 +224,7 @@ public final class CheckEngine {
             alerts.dispatch(violation, punishThreshold, false);
         }
 
-        boolean consoleOwnsIt = alerted && current.alerts().enabled() && alerts.consoleAlertsEnabled();
+        boolean consoleOwnsIt = current.alerts().enabled() && alerts.consoleAlertsEnabled();
         if (!consoleOwnsIt && current.general().logViolationsToConsole()) {
             server.info("violation " + player.name() + " " + violation.describe());
         }

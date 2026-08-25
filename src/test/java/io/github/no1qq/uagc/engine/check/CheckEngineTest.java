@@ -36,16 +36,25 @@ class CheckEngineTest {
                 .build();
     }
 
-    @Test
-    void theConsoleNeverSeesAViolationAndItsAlertForTheSameFlag() {
+    private static UagcConfig loggingViolations() {
         UagcConfig base = UagcConfig.defaults();
         GeneralSettings general = new GeneralSettings(true, base.general().bypassRefreshIntervalTicks(),
                 base.general().lagSpikeThresholdMillis(), base.general().exemptOnLagSpike(),
                 base.general().maxCheckFailuresBeforeDisable(), base.general().logPunishments(), true);
-        UagcConfig config = new UagcConfig(general, base.playerData(), base.confidence(), base.alerts(),
+        return new UagcConfig(general, base.playerData(), base.confidence(), base.alerts(),
                 base.freeze(), base.punishments(), base.debug(), base.checks());
+    }
 
-        EngineHarness harness = new EngineHarness(config, new StubChecks.AlwaysFlags("stub", 1.0D, false));
+    private static long violationLines(EngineHarness harness) {
+        return harness.server().infoMessages().stream()
+                .filter(line -> line.startsWith("violation "))
+                .count();
+    }
+
+    @Test
+    void theConsoleOnlyEverSeesOneKindOfLine() {
+        EngineHarness harness = new EngineHarness(loggingViolations(),
+                new StubChecks.AlwaysFlags("stub", 1.0D, false));
         PlayerData player = harness.addPlayer("tester");
 
         for (long tick = 1L; tick <= 6L; tick++) {
@@ -53,13 +62,25 @@ class CheckEngineTest {
             harness.process(player, new MovementEvent(snapshot(tick)));
         }
 
-        int alerts = harness.messages().consoleAlerts().size();
-        long violationLines = harness.server().infoMessages().stream()
-                .filter(line -> line.startsWith("violation "))
-                .count();
+        assertTrue(harness.messages().consoleAlerts().size() > 0, "the alert must reach the console");
+        assertEquals(0L, violationLines(harness),
+                "the alert line owns the console, the plain line must never join it");
+    }
 
-        assertTrue(alerts > 0, "the flag above the threshold must reach the console as an alert");
-        assertEquals(3L, violationLines, "only the flags below the alert threshold get the plain line");
+    @Test
+    void thePlainLineComesBackWhenTheConsoleTookItselfOffAlerts() {
+        EngineHarness harness = new EngineHarness(loggingViolations(),
+                new StubChecks.AlwaysFlags("stub", 1.0D, false));
+        harness.alerts().setConsoleAlerts(false);
+        PlayerData player = harness.addPlayer("tester");
+
+        for (long tick = 1L; tick <= 6L; tick++) {
+            harness.clock().setTick(tick);
+            harness.process(player, new MovementEvent(snapshot(tick)));
+        }
+
+        assertEquals(0, harness.messages().consoleAlerts().size(), "the console asked for no alerts");
+        assertEquals(6L, violationLines(harness), "with no alerts the plain log is all there is");
     }
 
     @Test

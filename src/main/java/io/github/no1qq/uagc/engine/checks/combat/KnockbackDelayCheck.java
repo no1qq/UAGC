@@ -86,7 +86,7 @@ public final class KnockbackDelayCheck implements Check<MovementEvent, Knockback
             return CheckResult.passed();
         }
 
-        long maximumDelay = (long) context.config().option("maximum-delay-ticks", 2.0D);
+        long maximumDelay = (long) context.config().option("maximum-delay-ticks", 1.0D);
 
         if (context.isDebugWatched()) {
             long reported = delay;

@@ -10,6 +10,7 @@ public final class KnockbackModel {
         long appliedTick = Long.MIN_VALUE;
         long sourceTick = Long.MIN_VALUE;
         double magnitude;
+        double expected;
         double directionX;
         double directionZ;
         double peak;
@@ -20,6 +21,7 @@ public final class KnockbackModel {
         public void complete() {
             appliedTick = Long.MIN_VALUE;
             magnitude = 0.0D;
+            expected = 0.0D;
             directionX = 0.0D;
             directionZ = 0.0D;
             peak = 0.0D;
@@ -61,8 +63,12 @@ public final class KnockbackModel {
             return observed;
         }
 
+        public double expected() {
+            return expected;
+        }
+
         public double takenRatio() {
-            return magnitude <= 0.0D ? 1.0D : peak / magnitude;
+            return expected <= 0.0D ? 1.0D : peak / expected;
         }
     }
 
@@ -90,7 +96,18 @@ public final class KnockbackModel {
         session.magnitude = magnitude;
         session.directionX = velocity.x() / magnitude;
         session.directionZ = velocity.z() / magnitude;
+        session.expected = expectedTravel(session, player, magnitude);
         return true;
+    }
+
+    private static double expectedTravel(Session session, PlayerData player, double magnitude) {
+        MovementSnapshot last = player.movement().last();
+        if (last == null || !last.isFinite()) {
+            return magnitude;
+        }
+        Vec3 delta = last.delta();
+        double carried = delta.x() * session.directionX + delta.z() * session.directionZ;
+        return Math.max(magnitude * 0.5D, magnitude + carried * 0.5D);
     }
 
     public static void observe(Session session, MovementSnapshot snapshot, long tick, double responseRatio) {

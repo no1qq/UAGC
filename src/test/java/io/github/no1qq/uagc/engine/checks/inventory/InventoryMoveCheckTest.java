@@ -1,5 +1,6 @@
 package io.github.no1qq.uagc.engine.checks.inventory;
 
+import io.github.no1qq.uagc.engine.check.CheckResult;
 import io.github.no1qq.uagc.engine.check.EventCheckHarness;
 import io.github.no1qq.uagc.engine.check.event.InventoryClickCheckEvent;
 import io.github.no1qq.uagc.engine.movement.SurfaceSample;
@@ -33,22 +34,55 @@ class InventoryMoveCheckTest {
         return position;
     }
 
+    private Vec3 coast(EventCheckHarness<InventoryClickCheckEvent, InventoryMoveCheck.State> harness,
+                       Vec3 start, long fromTick, int ticks, double speed, SurfaceSample surface) {
+        Vec3 position = start;
+        double current = speed;
+        for (int index = 0; index < ticks; index++) {
+            current *= 0.546D;
+            Vec3 next = new Vec3(position.x() + current, position.y(), position.z());
+            harness.player().movement().update(SnapshotBuilder.create()
+                    .tick(fromTick + index)
+                    .from(position)
+                    .to(next)
+                    .surface(surface)
+                    .build());
+            position = next;
+        }
+        return position;
+    }
+
     private InventoryClickCheckEvent click(long tick) {
+        return click(tick, false, false);
+    }
+
+    private InventoryClickCheckEvent click(long tick, boolean sprinting, boolean sneaking) {
         return new InventoryClickCheckEvent(tick, 1_700_000_000_000L + tick * 50L, 13,
-                "PICKUP_ALL", "CHEST", false, false, 20);
+                "PICKUP_ALL", "CHEST", false, false, sprinting, sneaking, 20);
     }
 
     @Test
-    void clickingWhileSprintingAcrossSeveralTicksIsFlagged() {
+    void oneClickWhileSprintingIsFlagged() {
         EventCheckHarness<InventoryClickCheckEvent, InventoryMoveCheck.State> harness = harness();
-        Vec3 position = Vec3.ZERO;
-        long tick = 1L;
-        for (int round = 0; round < 5; round++) {
-            position = walk(harness, position, tick, 3, 0.2806D, Surfaces.ground());
-            tick += 3L;
-            harness.feed(click(tick - 1L));
-        }
-        assertTrue(harness.flagged(), "an open inventory screen releases the movement keys, this player never slowed");
+        walk(harness, Vec3.ZERO, 1L, 4, 0.2806D, Surfaces.ground());
+        assertTrue(harness.feed(click(5L, true, false)).flagged(),
+                "an open screen releases the sprint key, the client cannot be sprinting");
+    }
+
+    @Test
+    void aFlaggedClickIsCancelled() {
+        EventCheckHarness<InventoryClickCheckEvent, InventoryMoveCheck.State> harness = harness();
+        walk(harness, Vec3.ZERO, 1L, 4, 0.2806D, Surfaces.ground());
+        CheckResult result = harness.feed(click(5L, true, false));
+        assertTrue(result.requestDeny(), "the click itself must not go through");
+    }
+
+    @Test
+    void oneClickWhileStillBeingSteeredIsFlagged() {
+        EventCheckHarness<InventoryClickCheckEvent, InventoryMoveCheck.State> harness = harness();
+        walk(harness, Vec3.ZERO, 1L, 4, 0.2806D, Surfaces.ground());
+        assertTrue(harness.feed(click(5L)).flagged(),
+                "holding a steady walking speed with a screen open needs input the client never sent");
     }
 
     @Test
@@ -69,13 +103,9 @@ class InventoryMoveCheckTest {
         EventCheckHarness<InventoryClickCheckEvent, InventoryMoveCheck.State> harness = harness();
         Vec3 position = Vec3.ZERO;
         long tick = 1L;
-        double speed = 0.2806D;
         for (int round = 0; round < 8; round++) {
-            for (int index = 0; index < 3; index++) {
-                speed *= 0.546D;
-                position = walk(harness, position, tick, 1, speed, Surfaces.ground());
-                tick++;
-            }
+            position = coast(harness, position, tick, 3, 0.2806D, Surfaces.ground());
+            tick += 3L;
             harness.feed(click(tick - 1L));
         }
         assertFalse(harness.flagged(),
@@ -104,18 +134,17 @@ class InventoryMoveCheckTest {
         for (int round = 0; round < 6; round++) {
             position = walk(harness, position, tick, 3, 0.2806D, Surfaces.ground());
             tick += 3L;
-            harness.feed(click(tick - 1L));
+            harness.feed(click(tick - 1L, true, false));
         }
         assertFalse(harness.flagged(), "being knocked around with a screen open is not the player walking");
     }
 
     @Test
-    void aBurstOfClicksInOneMomentIsNeverFlagged() {
+    void theClickThatOpenedTheScreenIsNeverJudged() {
         EventCheckHarness<InventoryClickCheckEvent, InventoryMoveCheck.State> harness = harness();
         walk(harness, Vec3.ZERO, 1L, 4, 0.2806D, Surfaces.ground());
-        for (int index = 0; index < 6; index++) {
-            harness.feed(click(5L));
-        }
-        assertFalse(harness.flagged(), "six clicks in one moment cannot outlive momentum, the span is what matters");
+        InventoryClickCheckEvent opening = new InventoryClickCheckEvent(5L, 1_700_000_000_250L, 13,
+                "PICKUP_ALL", "CHEST", false, true, true, false, 20);
+        assertFalse(harness.feed(opening).flagged(), "the sprint state has not reached the server yet");
     }
 }

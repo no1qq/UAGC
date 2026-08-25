@@ -219,12 +219,12 @@ checks:
       options:
         hard-limit: 3.0
         deny: true
-        tolerance: 0.03
+        tolerance: 0.0005
         latency-tolerance: 0.02
         severity-scale: 0.5
         required-streak: 1
         streak-window-ticks: 60.0
-        minimum-rewind-ticks: 3
+        minimum-rewind-ticks: 0
         maximum-rewind-ticks: 8
         attacker-motion-cap: 0.4
 
@@ -251,9 +251,11 @@ checks:
         minimum-magnitude: 0.2
         minimum-ratio: 0.45
         response-ratio: 0.45
-        window-ticks: 6.0
-        minimum-observation-ticks: 2
+        window-ticks: 3.0
+        minimum-observation-ticks: 1
         required-samples: 2
+        instant-ratio: 0.15
+        instant-observation-ticks: 2
         buffer-decay: 0.5
         severity-scale: 0.35
 
@@ -268,7 +270,7 @@ checks:
         minimum-magnitude: 0.2
         response-ratio: 0.45
         window-ticks: 12.0
-        maximum-delay-ticks: 2.0
+        maximum-delay-ticks: 1.0
         required-samples: 2
         buffer-decay: 0.5
         severity-scale: 4.0
@@ -317,12 +319,18 @@ checks:
       minimum-confidence: 0.45
       alert-threshold: 2.0
       options:
-        maximum-speed: 0.08
-        sample-ticks: 3
-        required-clicks: 4
-        minimum-span-ticks: 8.0
-        session-gap-ticks: 20.0
-        severity-scale: 1.5
+        check-sprinting: true
+        check-sneaking: false
+        deny: true
+        tolerance: 0.003
+        ground-friction: 0.546
+        air-friction: 0.91
+        knockback-grace-ticks: 20.0
+        required-clicks: 1
+        buffer-decay: 0.5
+        session-gap-ticks: 40.0
+        state-severity: 1.0
+        severity-scale: 0.06
 
     silent_switch:
       enabled: true
