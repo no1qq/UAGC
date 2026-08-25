@@ -110,6 +110,10 @@ registry.register(new ExampleCheck(), config);
 Add a section under the matching category in `src/main/resources/config.yml`. If you skip this the
 check still runs on built in defaults, but administrators cannot tune it.
 
+Give every option a line in `bukkit/config/SettingsCatalog` as well. That is where the settings menu
+gets the name and the one sentence description it shows for a setting. Without one the option still
+appears, it just shows up as its own key with the dashes turned into spaces.
+
 ### 4. Test it
 
 Write both directions. A test that only proves the check catches cheating is half a test.

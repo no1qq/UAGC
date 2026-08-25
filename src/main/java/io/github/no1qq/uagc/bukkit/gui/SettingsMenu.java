@@ -2,6 +2,7 @@ package io.github.no1qq.uagc.bukkit.gui;
 
 import io.github.no1qq.uagc.bukkit.UagcPlugin;
 import io.github.no1qq.uagc.bukkit.UagcRuntime;
+import io.github.no1qq.uagc.bukkit.config.SettingsCatalog;
 import io.github.no1qq.uagc.bukkit.config.SettingsWriter;
 import io.github.no1qq.uagc.bukkit.message.Messages;
 import io.github.no1qq.uagc.engine.check.CheckCategory;
@@ -125,7 +126,7 @@ public final class SettingsMenu implements InventoryHolder {
 
     private void apply(SettingsWriter.Result result, String path) {
         status = switch (result) {
-            case APPLIED -> "<green>saved " + path;
+            case APPLIED -> "<green>saved " + SettingsCatalog.name(path);
             case UNKNOWN_PATH -> "<red>" + path + " is not in config.yml";
             case WRONG_TYPE -> "<red>" + path + " cannot be edited here";
             case RELOAD_FAILED -> "<red>written but the reload failed, see the console";
@@ -147,29 +148,34 @@ public final class SettingsMenu implements InventoryHolder {
 
     private void renderMain() {
         label(0, Material.BEACON, "<gold>UAGC settings",
-                List.of("<gray>left click raises a number",
+                List.of("<gray>everything the plugin does, in one place",
+                        "<gray>left click raises a number",
                         "<gray>right click lowers it",
                         "<gray>hold shift for ten times the step"));
 
-        label(9, Material.COMPARATOR, "<gold>general", List.of());
-        toggle(10, "general.enabled", "anti cheat enabled");
-        toggle(11, "general.log-violations-to-console", "log violations to console");
-        toggle(12, "general.exempt-on-lag-spike", "exempt on lag spike");
+        label(9, Material.COMPARATOR, "<gold>general",
+                List.of("<gray>whether the plugin runs and what it writes down"));
+        toggle(10, "general.enabled");
+        toggle(11, "general.log-violations-to-console");
+        toggle(12, "general.exempt-on-lag-spike");
 
-        label(18, Material.BELL, "<gold>alerts", List.of());
-        toggle(19, "alerts.enabled", "alerts enabled");
-        toggle(20, "alerts.flag-on-alert", "flag the player on alert");
-        toggle(21, "alerts.send-to-console", "send alerts to console");
-        number(22, "alerts.cooldown-ticks", "alert cooldown ticks", 1.0D, 0.0D, 200.0D);
-        number(23, "alerts.flag-setback-interval-ticks", "flag interval ticks", 1.0D, 1.0D, 200.0D);
-        number(24, "alerts.default-minimum-confidence", "minimum confidence", 0.05D, 0.0D, 1.0D);
+        label(18, Material.BELL, "<gold>alerts",
+                List.of("<gray>what staff are told and how often"));
+        toggle(19, "alerts.enabled");
+        toggle(20, "alerts.flag-on-alert");
+        toggle(21, "alerts.send-to-console");
+        number(22, "alerts.cooldown-ticks", 1.0D, 0.0D, 200.0D);
+        number(23, "alerts.flag-setback-interval-ticks", 1.0D, 1.0D, 200.0D);
+        number(24, "alerts.default-minimum-confidence", 0.05D, 0.0D, 1.0D);
 
-        label(27, Material.IRON_AXE, "<gold>punishments", List.of());
-        toggle(28, "punishments.enabled", "punishments enabled");
-        toggle(29, "punishments.dry-run", "dry run");
+        label(27, Material.IRON_AXE, "<gold>punishments",
+                List.of("<gray>what happens to a player the evidence convicts"));
+        toggle(28, "punishments.enabled");
+        toggle(29, "punishments.dry-run");
 
-        label(31, Material.SPYGLASS, "<gold>debug", List.of());
-        toggle(32, "debug.enabled", "debug enabled");
+        label(31, Material.SPYGLASS, "<gold>debug",
+                List.of("<gray>live check output for staff who ask for it"));
+        toggle(32, "debug.enabled");
 
         int active = 0;
         for (RegisteredCheck registered : runtime.registry().all()) {
@@ -178,9 +184,11 @@ public final class SettingsMenu implements InventoryHolder {
             }
         }
         put(40, item(Material.CHEST, "<aqua>check settings",
-                List.of("<gray>" + active + " of " + runtime.registry().size() + " checks enabled",
+                List.of("<gray>turn single detections on or off and tune them",
+                        "<gray>" + active + " of " + runtime.registry().size() + " checks enabled",
                         "<yellow>click to open")), Entry.action(Kind.OPEN_CHECKS, null));
-        put(49, item(Material.BARRIER, "<red>close", List.of()), Entry.action(Kind.CLOSE, null));
+        put(49, item(Material.BARRIER, "<red>close", List.of("<gray>shut the menu")),
+                Entry.action(Kind.CLOSE, null));
     }
 
     private void renderChecks() {
@@ -190,14 +198,20 @@ public final class SettingsMenu implements InventoryHolder {
         int from = listPage * CHECKS_PER_PAGE;
 
         label(4, Material.CHEST, "<gold>checks",
-                List.of("<gray>page " + (listPage + 1) + " of " + pages, "<gray>click a check to open it"));
+                List.of("<gray>every detection and what it is allowed to do",
+                        "<gray>page " + (listPage + 1) + " of " + pages,
+                        "<yellow>click a check to open it"));
 
         for (int index = 0; index < CHECKS_PER_PAGE && from + index < checks.size(); index++) {
             RegisteredCheck registered = checks.get(from + index);
             boolean enabled = registered.config().enabled();
             CheckCategory category = registered.definition().category();
             List<String> lore = new ArrayList<>();
-            lore.add("<gray>" + category.id() + " <dark_gray>" + registered.id());
+            lore.add("<gray>" + SettingsCatalog.category(category.id()));
+            String description = registered.definition().description();
+            if (!description.isEmpty()) {
+                lore.add("<dark_gray>" + description);
+            }
             lore.add("<gray>state: " + (enabled ? "<green>on" : "<red>off"));
             lore.add("<gray>alert threshold: <white>"
                     + SettingsWriter.format(plugin, path(registered) + ".alert-threshold"));
@@ -209,13 +223,15 @@ public final class SettingsMenu implements InventoryHolder {
         }
 
         if (listPage > 0) {
-            put(45, item(Material.ARROW, "<white>previous page", List.of()),
+            put(45, item(Material.ARROW, "<white>previous page", List.of("<gray>back up the check list")),
                     Entry.action(Kind.PREVIOUS_PAGE, null));
         }
         if (from + CHECKS_PER_PAGE < checks.size()) {
-            put(53, item(Material.ARROW, "<white>next page", List.of()), Entry.action(Kind.NEXT_PAGE, null));
+            put(53, item(Material.ARROW, "<white>next page", List.of("<gray>further down the check list")),
+                    Entry.action(Kind.NEXT_PAGE, null));
         }
-        put(49, item(Material.OAK_DOOR, "<white>back", List.of()), Entry.action(Kind.BACK, null));
+        put(49, item(Material.OAK_DOOR, "<white>back", List.of("<gray>return to the main page")),
+                Entry.action(Kind.BACK, null));
     }
 
     private void renderCheck() {
@@ -235,21 +251,25 @@ public final class SettingsMenu implements InventoryHolder {
         }
 
         label(4, Material.WRITABLE_BOOK, "<gold>" + registered.definition().displayName(),
-                List.of("<gray>" + registered.definition().category().id() + " <dark_gray>" + registered.id(),
-                        "<gray>" + registered.definition().description()));
+                List.of("<gray>" + SettingsCatalog.category(registered.definition().category().id()),
+                        "<dark_gray>" + registered.definition().description()));
 
-        toggle(9, base + ".enabled", "enabled");
-        number(10, base + ".violation-increment", "violation increment", 0.5D, 0.0D, 100.0D);
-        number(11, base + ".decay-per-tick", "decay per tick", 0.01D, 0.0D, 10.0D);
-        number(12, base + ".minimum-confidence", "minimum confidence", 0.05D, 0.0D, 1.0D);
-        number(13, base + ".alert-threshold", "alert threshold", 1.0D, 0.0D, 500.0D);
-        number(14, base + ".max-violation-level", "max violation level", 10.0D, 1.0D, 5000.0D);
-        toggle(15, base + ".setback-enabled", "setback enabled");
-        number(16, base + ".setback-threshold", "setback threshold", 1.0D, 0.0D, 500.0D);
+        toggle(9, base + ".enabled");
+        number(10, base + ".violation-increment", 0.5D, 0.0D, 100.0D);
+        number(11, base + ".decay-per-tick", 0.01D, 0.0D, 10.0D);
+        number(12, base + ".minimum-confidence", 0.05D, 0.0D, 1.0D);
+        number(13, base + ".alert-threshold", 1.0D, 0.0D, 500.0D);
+        number(14, base + ".max-violation-level", 10.0D, 1.0D, 5000.0D);
+        toggle(15, base + ".setback-enabled");
+        number(16, base + ".setback-threshold", 1.0D, 0.0D, 500.0D);
 
         ConfigurationSection options = config.getConfigurationSection(base + ".options");
         int slot = 18;
         if (options != null) {
+            if (!options.getKeys(false).isEmpty()) {
+                label(17, Material.PAPER, "<gold>how this check measures",
+                        List.of("<gray>the numbers the model itself works with"));
+            }
             for (String key : options.getKeys(false)) {
                 if (slot >= 45) {
                     break;
@@ -257,41 +277,50 @@ public final class SettingsMenu implements InventoryHolder {
                 String optionPath = base + ".options." + key;
                 Object value = options.get(key);
                 if (value instanceof Boolean) {
-                    toggle(slot++, optionPath, key.replace('-', ' '));
+                    toggle(slot++, optionPath);
                 } else if (value instanceof Number number) {
-                    number(slot++, optionPath, key.replace('-', ' '),
-                            SettingsWriter.step(number.doubleValue()), 0.0D, 10_000.0D);
+                    number(slot++, optionPath, SettingsWriter.step(number.doubleValue()), 0.0D, 10_000.0D);
                 }
             }
         }
-        put(49, item(Material.OAK_DOOR, "<white>back", List.of()), Entry.action(Kind.BACK, null));
+        put(49, item(Material.OAK_DOOR, "<white>back", List.of("<gray>return to the check list")),
+                Entry.action(Kind.BACK, null));
     }
 
     private String path(RegisteredCheck registered) {
         return "checks." + registered.definition().category().id() + "." + registered.id();
     }
 
-    private void toggle(int slot, String path, String label) {
+    private void toggle(int slot, String path) {
         if (!SettingsWriter.exists(plugin, path) || !SettingsWriter.isBoolean(plugin, path)) {
             return;
         }
+        SettingsCatalog.Label label = SettingsCatalog.of(path);
         boolean current = plugin.getConfig().getBoolean(path);
+        List<String> lore = new ArrayList<>();
+        if (!label.description().isEmpty()) {
+            lore.add("<gray>" + label.description());
+        }
+        lore.add("<gray>value: " + (current ? "<green>on" : "<red>off"));
+        lore.add("<yellow>click to turn " + (current ? "off" : "on"));
         put(slot, item(current ? Material.LIME_DYE : Material.GRAY_DYE,
-                (current ? "<green>" : "<red>") + label,
-                List.of("<gray>value: " + (current ? "<green>on" : "<red>off"),
-                        "<dark_gray>" + path,
-                        "<yellow>click to turn " + (current ? "off" : "on"))), Entry.toggle(path));
+                (current ? "<green>" : "<red>") + label.name(), lore), Entry.toggle(path));
     }
 
-    private void number(int slot, String path, String label, double step, double minimum, double maximum) {
+    private void number(int slot, String path, double step, double minimum, double maximum) {
         if (!SettingsWriter.exists(plugin, path) || !SettingsWriter.isNumber(plugin, path)) {
             return;
         }
-        put(slot, item(Material.COMPARATOR, "<aqua>" + label,
-                List.of("<gray>value: <white>" + SettingsWriter.format(plugin, path),
-                        "<dark_gray>" + path,
-                        "<yellow>left click <gray>+" + trim(step) + "  <yellow>right click <gray>-" + trim(step),
-                        "<dark_gray>hold shift for ten times that")), Entry.number(path, step, minimum, maximum));
+        SettingsCatalog.Label label = SettingsCatalog.of(path);
+        List<String> lore = new ArrayList<>();
+        if (!label.description().isEmpty()) {
+            lore.add("<gray>" + label.description());
+        }
+        lore.add("<gray>value: <white>" + SettingsWriter.format(plugin, path));
+        lore.add("<yellow>left click <gray>+" + trim(step) + "  <yellow>right click <gray>-" + trim(step));
+        lore.add("<dark_gray>hold shift for ten times that");
+        put(slot, item(Material.COMPARATOR, "<aqua>" + label.name(), lore),
+                Entry.number(path, step, minimum, maximum));
     }
 
     private void label(int slot, Material material, String name, List<String> lore) {

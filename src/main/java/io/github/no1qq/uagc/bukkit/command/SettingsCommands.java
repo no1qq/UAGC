@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import io.github.no1qq.uagc.bukkit.UagcPlugin;
 import io.github.no1qq.uagc.bukkit.UagcRuntime;
+import io.github.no1qq.uagc.bukkit.config.SettingsCatalog;
 import io.github.no1qq.uagc.bukkit.config.SettingsWriter;
 import io.github.no1qq.uagc.bukkit.gui.SettingsMenu;
 import io.github.no1qq.uagc.engine.check.CheckCategory;
@@ -102,24 +103,24 @@ final class SettingsCommands {
         CommandSupport.send(source, "<white>UAGC settings</white> <dark_gray>click a value to change it</dark_gray>");
 
         CommandSupport.sendRaw(source, "<gold>general</gold>");
-        toggle(source, config, "general.enabled", "anti cheat enabled");
-        toggle(source, config, "general.log-violations-to-console", "log violations to console");
-        toggle(source, config, "general.exempt-on-lag-spike", "exempt on lag spike");
+        toggle(source, config, "general.enabled");
+        toggle(source, config, "general.log-violations-to-console");
+        toggle(source, config, "general.exempt-on-lag-spike");
 
         CommandSupport.sendRaw(source, "<gold>alerts</gold>");
-        toggle(source, config, "alerts.enabled", "alerts enabled");
-        toggle(source, config, "alerts.flag-on-alert", "flag the player on alert");
-        toggle(source, config, "alerts.send-to-console", "send alerts to console");
-        number(source, config, "alerts.cooldown-ticks", "alert cooldown ticks", 1.0D, 0.0D, 200.0D);
-        number(source, config, "alerts.flag-setback-interval-ticks", "flag interval ticks", 1.0D, 1.0D, 200.0D);
-        number(source, config, "alerts.default-minimum-confidence", "minimum confidence", 0.05D, 0.0D, 1.0D);
+        toggle(source, config, "alerts.enabled");
+        toggle(source, config, "alerts.flag-on-alert");
+        toggle(source, config, "alerts.send-to-console");
+        number(source, config, "alerts.cooldown-ticks", 1.0D, 0.0D, 200.0D);
+        number(source, config, "alerts.flag-setback-interval-ticks", 1.0D, 1.0D, 200.0D);
+        number(source, config, "alerts.default-minimum-confidence", 0.05D, 0.0D, 1.0D);
 
         CommandSupport.sendRaw(source, "<gold>punishments</gold>");
-        toggle(source, config, "punishments.enabled", "punishments enabled");
-        toggle(source, config, "punishments.dry-run", "dry run");
+        toggle(source, config, "punishments.enabled");
+        toggle(source, config, "punishments.dry-run");
 
         CommandSupport.sendRaw(source, "<gold>debug</gold>");
-        toggle(source, config, "debug.enabled", "debug enabled");
+        toggle(source, config, "debug.enabled");
 
         CommandSupport.sendRaw(source, "<gray>  <click:run_command:'/uagc settings checks'>"
                 + "<hover:show_text:'open the check list'><aqua>[check settings]</aqua></hover></click>"
@@ -128,16 +129,18 @@ final class SettingsCommands {
 
     private static void checkList(CommandSourceStack source, UagcRuntime runtime, CheckCategory filter) {
         CommandSupport.send(source, "<white>check settings</white>"
-                + (filter == null ? "" : " <gray>" + filter.id() + "</gray>"));
+                + (filter == null ? "" : " <gray>" + SettingsCatalog.category(filter.id()) + "s</gray>"));
         for (RegisteredCheck registered : runtime.registry().all()) {
             if (filter != null && registered.definition().category() != filter) {
                 continue;
             }
             String state = registered.config().enabled() ? "<green>on</green>" : "<gray>off</gray>";
-            CommandSupport.sendRaw(source, "<gray>  " + registered.definition().category().id() + "/"
+            CommandSupport.sendRaw(source, "<gray>  "
+                    + SettingsCatalog.category(registered.definition().category().id()) + " "
                     + "<click:run_command:'/uagc settings check " + registered.id() + "'>"
-                    + "<hover:show_text:'" + escape(registered.definition().description()) + "'>"
-                    + "<white>" + registered.id() + "</white></hover></click> " + state
+                    + "<hover:show_text:'" + escape(registered.definition().description()) + " "
+                    + registered.id() + "'>"
+                    + "<white>" + registered.definition().displayName() + "</white></hover></click> " + state
                     + " <dark_gray>vl threshold " + CommandSupport.formatDouble(registered.config().alertThreshold())
                     + "</dark_gray>");
         }
@@ -159,28 +162,28 @@ final class SettingsCommands {
         CommandSupport.send(source, "<white>" + registered.definition().displayName() + "</white> <gray>"
                 + registered.id() + "</gray>");
         CommandSupport.sendRaw(source, "<dark_gray>  " + escape(registered.definition().description()) + "</dark_gray>");
-        toggle(source, config, base + ".enabled", "enabled");
-        number(source, config, base + ".violation-increment", "violation increment", 0.5D, 0.0D, 50.0D);
-        number(source, config, base + ".decay-per-tick", "decay per tick", 0.01D, 0.0D, 5.0D);
-        number(source, config, base + ".minimum-confidence", "minimum confidence", 0.05D, 0.0D, 1.0D);
-        number(source, config, base + ".alert-threshold", "alert threshold", 1.0D, 0.0D, 200.0D);
+        toggle(source, config, base + ".enabled");
+        number(source, config, base + ".violation-increment", 0.5D, 0.0D, 50.0D);
+        number(source, config, base + ".decay-per-tick", 0.01D, 0.0D, 5.0D);
+        number(source, config, base + ".minimum-confidence", 0.05D, 0.0D, 1.0D);
+        number(source, config, base + ".alert-threshold", 1.0D, 0.0D, 200.0D);
         if (config.contains(base + ".setback-enabled")) {
-            toggle(source, config, base + ".setback-enabled", "setback enabled");
-            number(source, config, base + ".setback-threshold", "setback threshold", 1.0D, 0.0D, 200.0D);
+            toggle(source, config, base + ".setback-enabled");
+            number(source, config, base + ".setback-threshold", 1.0D, 0.0D, 200.0D);
         }
 
         ConfigurationSection options = config.getConfigurationSection(base + ".options");
         if (options == null) {
             return;
         }
-        CommandSupport.sendRaw(source, "<gold>  options</gold>");
+        CommandSupport.sendRaw(source, "<gold>  how this check measures</gold>");
         for (String key : options.getKeys(false)) {
             Object value = options.get(key);
             String path = base + ".options." + key;
             if (value instanceof Boolean) {
-                toggle(source, config, path, key);
+                toggle(source, config, path);
             } else if (value instanceof Number number) {
-                number(source, config, path, key, step(number.doubleValue()), 0.0D, 10_000.0D);
+                number(source, config, path, step(number.doubleValue()), 0.0D, 10_000.0D);
             }
         }
     }
@@ -202,31 +205,41 @@ final class SettingsCommands {
         return 0.001D;
     }
 
-    private static void toggle(CommandSourceStack source, FileConfiguration config, String path, String label) {
+    private static void toggle(CommandSourceStack source, FileConfiguration config, String path) {
         if (!config.contains(path)) {
             return;
         }
+        SettingsCatalog.Label label = SettingsCatalog.of(path);
         boolean current = config.getBoolean(path);
-        CommandSupport.sendRaw(source, "<gray>  " + label + ": "
+        CommandSupport.sendRaw(source, "<gray>  " + label.name() + ": "
                 + (current ? "<green>on</green>" : "<red>off</red>")
                 + " <click:run_command:'/uagc settings toggle " + path + "'>"
-                + "<hover:show_text:'" + path + "'><aqua>[toggle]</aqua></hover></click>");
+                + "<hover:show_text:'" + hover(label, path) + "'><aqua>[toggle]</aqua></hover></click>");
     }
 
-    private static void number(CommandSourceStack source, FileConfiguration config, String path, String label,
+    private static void number(CommandSourceStack source, FileConfiguration config, String path,
                                double step, double minimum, double maximum) {
         if (!config.contains(path)) {
             return;
         }
+        SettingsCatalog.Label label = SettingsCatalog.of(path);
         boolean integral = config.get(path) instanceof Integer;
         double current = config.getDouble(path);
         double down = Math.max(minimum, current - step);
         double up = Math.min(maximum, current + step);
-        CommandSupport.sendRaw(source, "<gray>  " + label + ": <white>" + format(current, integral) + "</white> "
+        String hover = hover(label, path);
+        CommandSupport.sendRaw(source, "<gray>  " + label.name() + ": <white>" + format(current, integral)
+                + "</white> "
                 + "<click:run_command:'/uagc settings set " + path + " " + format(down, integral) + "'>"
-                + "<hover:show_text:'" + path + "'><red>[-]</red></hover></click> "
+                + "<hover:show_text:'" + hover + "'><red>[-]</red></hover></click> "
                 + "<click:run_command:'/uagc settings set " + path + " " + format(up, integral) + "'>"
-                + "<hover:show_text:'" + path + "'><green>[+]</green></hover></click>");
+                + "<hover:show_text:'" + hover + "'><green>[+]</green></hover></click>");
+    }
+
+    private static String hover(SettingsCatalog.Label label, String path) {
+        return label.description().isEmpty()
+                ? escape(path)
+                : escape(label.description()) + " " + escape(path);
     }
 
     private static String format(double value, boolean integral) {
@@ -243,7 +256,8 @@ final class SettingsCommands {
                     "the value was written but the reload failed, see the server log");
             case APPLIED -> {
                 String value = SettingsWriter.format(plugin, path);
-                CommandSupport.send(source, "<white>" + path + "</white> is now <green>" + value + "</green>");
+                CommandSupport.send(source, "<white>" + SettingsCatalog.name(path) + "</white> is now <green>"
+                        + value + "</green> <dark_gray>" + path + "</dark_gray>");
                 runtime.server().info("settings " + path + " set to " + value
                         + " by " + CommandSupport.senderName(source));
                 reopen(source, plugin, runtime, path);

@@ -250,12 +250,18 @@ be punished by staff commands.
 Every entry is an item. A boolean is a dye, lime for on and grey for off, and clicking it flips the
 value. A number is a comparator: left click raises it, right click lowers it, and holding shift makes
 the step ten times bigger. The step itself scales with the value, so a tolerance of `0.005` moves in
-thousandths while a threshold of `200` moves in fives. Every item names its own `config.yml` path in the
-lore, and a name tag appears in the bottom row saying what the last click changed.
+thousandths while a threshold of `200` moves in fives. Every item is named for what it does rather than
+for its `config.yml` key, and the first line of its lore says in one sentence what changing it means. A
+name tag appears in the bottom row saying what the last click changed.
 
-The chest button opens the check list. Each check is a dye showing its state, alert threshold and how
-many times it has flagged this session, and clicking it opens that check own page: the shared
-thresholds first, then every option it reads, including the ones documented in [Checks](checks.md).
+The chest button opens the check list. Each check is a dye named after the check, showing its category,
+what it looks for, its state, alert threshold and how many times it has flagged this session, and
+clicking it opens that check own page: the shared thresholds first, then every option it reads,
+including the ones documented in [Checks](checks.md).
+
+Those names and descriptions live in `bukkit/config/SettingsCatalog`. A key with no entry there falls
+back to its own name with the dashes turned into spaces, so a new setting still shows up in the menu,
+it just reads like a config key until it is given a line in the catalog.
 
 Every change writes to `config.yml`, saves it, and reloads the runtime the same way `/uagc reload` does,
 so nothing is kept in memory only and a restart keeps whatever was set.
